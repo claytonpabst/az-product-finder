@@ -46,43 +46,36 @@ module.exports = {
     for (let i = 0; i < asinList.length; i++){
       let productUrl = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
       await page.goto(productUrl);
+      await page.waitForSelector('#olpOfferList');
 
       // Here we can see who sells each product. Amazon should be top of the list if they sell it
-    }
-  
-    // for each search result, we'll click into it, get its ranking, and make sure Amazon doesn't sell it
-    // for (let i = 0; i < list.length; i++){
-    //   let itemSelector = `#s-results-list-atf li:nth-child(${i}) a.s-access-detail-page`;
-    //   if (itemSelector){
-    //     console.log('found one at ' + i);
 
-    //     await page.click(itemSelector);
-    //     await page.waitForSelector('#buybox');
+      // this takes us to the product details page where we can get the sales ranking
+      await page.waitForSelector('#olpDetailPageLink');
+      page.click('#olpDetailPageLink');
 
-    //     // Get the sales ranking
-    //     let ranking = page.$eval('body', function(){
-    //       let rank;
-    //       if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/) && document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]){
-    //         rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1];
-    //       }
-    //       console.log(rank);
-    //     })
-    //   }
+      let buybox = '#buybox';
+      await page.waitForSelector(buybox);
 
-    //   /* ****** Make sure Amazon doesn't sell it here *******
-    //     // if (page.$('#moreBuyingChoices_feature_div')){
-    //     //   page.click('#moreBuyingChoices_feature_div')
-    //     // }
-    //   */
+
+      let ranking = await page.evaluate((buybox) => {
+
+        let rank = 100000000000;
         
-    //   // Goes back to the search results URL so we can do the same thing for the next item in the list
-    //   await page.goto(mainUrl);
-    //   await page.waitForSelector('#s-results-list-atf');
+        if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)){
+          rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]
+        }
+  
+        return rank;
+    
+      }, buybox);
 
-    // }
+      console.log(ranking);
+
+      // Push items to the DB here that meet certain criteria
+    }
 
     console.log('for loop done');
-    
 
   },
 
