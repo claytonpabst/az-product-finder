@@ -6,20 +6,83 @@ const puppeteer = require('puppeteer');
 module.exports = {
 
   findProducts: async function(req, res){
-    const category = req.body.category
-    let searchTerm = req.body.search.split(' ')
-    for(let i=0; i<searchTerm.length; i++){
-      if(i === searchTerm.length -1){
-        searchTerm = searchTerm + searchTerm[i]
-      } else {
-        searchTerm = searchTerm + searchTerm[i] + "+"
-      }
-    }
-    console.log(searchTerm)
+    console.log('hit')
+    const category = req.body.category;
+    let searchTerm = req.body.search.split(' ').join('+');
+
     const browser = await puppeteer.launch({headless: false});
     const page = await browser.newPage(); 
-    // https://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Delectronics&field-keywords=
-    await page.goto(`https://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3D${req.body.category}&field-keywords${searchTerm}`);
+    
+    // Main search results URL
+    let mainUrl = `https://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
+    await page.goto(mainUrl);
+    
+    // This is the list of items on this page (search results)
+    let listSelector = '#s-results-list-atf';
+    await page.waitForSelector(listSelector);
+    
+    // This gets the ASINs for all of the products on this page
+    const asinList = await page.evaluate((listSelector) => {
+
+      let asins = [];
+
+      // this console.logs to the Puppeteer window console
+      console.log(listSelector); 
+      console.log(document.querySelectorAll(listSelector));
+
+      let ul =  document.querySelectorAll(listSelector)[0];
+      let list = ul.children || [];
+
+      for (let i = 0; i < list.length; i++){
+        asins.push(list[i].attributes[2].nodeValue);
+      }
+
+      return asins;
+  
+    }, listSelector);
+
+    console.log(asinList);
+
+    for (let i = 0; i < asinList.length; i++){
+      let productUrl = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
+      await page.goto(productUrl);
+
+      // Here we can see who sells each product. Amazon should be top of the list if they sell it
+    }
+  
+    // for each search result, we'll click into it, get its ranking, and make sure Amazon doesn't sell it
+    // for (let i = 0; i < list.length; i++){
+    //   let itemSelector = `#s-results-list-atf li:nth-child(${i}) a.s-access-detail-page`;
+    //   if (itemSelector){
+    //     console.log('found one at ' + i);
+
+    //     await page.click(itemSelector);
+    //     await page.waitForSelector('#buybox');
+
+    //     // Get the sales ranking
+    //     let ranking = page.$eval('body', function(){
+    //       let rank;
+    //       if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/) && document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]){
+    //         rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1];
+    //       }
+    //       console.log(rank);
+    //     })
+    //   }
+
+    //   /* ****** Make sure Amazon doesn't sell it here *******
+    //     // if (page.$('#moreBuyingChoices_feature_div')){
+    //     //   page.click('#moreBuyingChoices_feature_div')
+    //     // }
+    //   */
+        
+    //   // Goes back to the search results URL so we can do the same thing for the next item in the list
+    //   await page.goto(mainUrl);
+    //   await page.waitForSelector('#s-results-list-atf');
+
+    // }
+
+    console.log('for loop done');
+    
 
   },
 
@@ -163,4 +226,6 @@ module.exports = {
     }
     
   }
+
+
 }
