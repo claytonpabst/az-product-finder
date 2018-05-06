@@ -71,6 +71,51 @@ async function getProductRanking(page){
   catch(e){}
 }
 
+async function amazonSellsThisProduct(page){
+  try{
+
+    let sellersBox = '#olpOfferList';
+    await page.waitForSelector(sellersBox);
+    
+    let amazonSellsThisProduct = await page.evaluate((sellersBox) => {
+
+      let amazonSells = false;
+
+      if (!document.querySelector(sellersBox)){
+        console.log('\n**ERROR: Sellers box selector doesn\'t exist, need new selector for this page**\n');
+        return false;
+      }
+
+      console.log(document.querySelector(sellersBox));
+      console.log(document.querySelector(sellersBox)[0]);
+
+      let sellersHtml = document.querySelector(sellersBox)[0].innerHTML;
+      let amazonPatterns = [
+        /alt="Amazon\.com"/,
+        /alt="amazon\.com"/,
+        /src="https:\/\/images-na\.ssl-images-amazon\.com\/images\/I\/01dXM-J1oeL\.gif/,
+      ]
+
+      for (let i = 0; i < amazonPatterns.length; i++){
+        if (sellersHtml.match(amazonPatterns[i])){
+          console.log('Found Amazon Pattern');
+          return true;
+        }
+      }
+      
+      console.log('Found no amazon seller on this product');
+      return false;
+
+    }, sellersBox);
+
+    return amazonSellsThisProduct;
+
+  }
+  catch(e){
+
+  }
+}
+
 module.exports = {
 
   findProducts: async function(req, res){
@@ -101,21 +146,21 @@ module.exports = {
         // This takes us to the product details page where we get the product sales ranking
         await page.goto(productDetailsPage);
         let ranking = await getProductRanking(page);
-        ranking = parseInt(ranking);
+        ranking = parseInt(ranking, 10);
         console.log(ranking);
   
         // If the ranking is good enough, make sure Amazon doesn't sell it themselves
         if (ranking && !isNaN(ranking) && ranking < 80500){
           console.log('checking sellers');
-          
+
           // Here we can see who sells each product. Amazon should be top of the list if they sell it
-          let amazonSellsThisProduct = false;
-          await page.goto(productSellersPage);
-          await page.waitForSelector('#olpOfferList');
+          await page.goto(productSellersPage);          
+          let amazonSellsThisProduct = await amazonSellsThisProduct(page);
+          console.log('Amazon sells: ' + amazonSellsThisProduct);
     
           if (!amazonSellsThisProduct){
             // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
-  
+            console.log('Pushing ASIN to DB');
           }
         }
       }   
