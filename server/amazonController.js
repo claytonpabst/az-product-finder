@@ -3,20 +3,10 @@ var config = require('./config.js');
 
 const puppeteer = require('puppeteer');
 
-module.exports = {
+async function getAsinsOnPage(page){
+  try{
+    console.log('Getting ASINs for the products on this page');
 
-  findProducts: async function(req, res){
-    console.log('hit')
-    const category = req.body.category;
-    let searchTerm = req.body.search.split(' ').join('+');
-
-    const browser = await puppeteer.launch({headless: false});
-    const page = await browser.newPage(); 
-    
-    // Main search results URL
-    let mainUrl = `https://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
-    await page.goto(mainUrl);
-    
     // This is the list of items on this page (search results)
     let listSelector = '#s-results-list-atf';
     await page.waitForSelector(listSelector);
@@ -34,52 +24,111 @@ module.exports = {
       let list = ul.children || [];
 
       for (let i = 0; i < list.length; i++){
-        asins.push(list[i].attributes[2].nodeValue);
+        let att = list[i].attributes;
+
+        // For each product, go through the attributes, find the data-asin object, and get the asin from it
+        for (let j = 0; j < att.length; j++){
+          if (att[j].name && att[j].name === 'data-asin' && list[i].attributes[j].nodeValue){
+            asins.push(list[i].attributes[j].nodeValue);
+          }
+        }
       }
 
       return asins;
   
     }, listSelector);
 
-    console.log(asinList);
+    // await page.waitfor(100000);
 
-    for (let i = 0; i < asinList.length; i++){
-      let productUrl = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
-      await page.goto(productUrl);
-      await page.waitForSelector('#olpOfferList');
+    return asinList;
+  }
+  catch(e){}
+}
 
-      // Here we can see who sells each product. Amazon should be top of the list if they sell it
+async function getProductRanking(page){
+  try{
+    console.log('Getting Product Ranking');
 
-      // this takes us to the product details page where we can get the sales ranking
-      await page.waitForSelector('#olpDetailPageLink');
-      page.click('#olpDetailPageLink');
+    let buybox = '#buybox';
+    await page.waitForSelector(buybox);
 
-      let buybox = '#buybox';
-      await page.waitForSelector(buybox);
+    let ranking = await page.evaluate((buybox) => {
 
+      let rank = 100000000000;
+      
+      if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)){
+        rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]
+      }
 
-      let ranking = await page.evaluate((buybox) => {
+      console.log(rank);
 
-        let rank = 100000000000;
-        
-        if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)){
-          rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]
-        }
+      return rank;
   
-        return rank;
+    }, buybox);
+
+    return ranking;
+  }
+  catch(e){}
+}
+
+module.exports = {
+
+  findProducts: async function(req, res){
+    try{
+
+      const category = req.body.category;
+      let searchTerm = req.body.search.split(' ').join('+');
+  
+      const browser = await puppeteer.launch({headless: false});
+      const page = await browser.newPage(); 
+      
+      // Main search results URL
+      let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
+      await page.goto(mainUrl);
+      
+      let asinList = await getAsinsOnPage(page);
+      console.log(asinList);
+  
+      /*
+      ************** AT THIS POINT WE HAVE A LIST OF ASINS, & WE CAN GO TO EACH URL ****************** 
+      */
+  
+      for (let i = 0; i < asinList.length; i++){
+        let productDetailsPage = `https://www.amazon.com/abc/dp/${asinList[i]}`;
+        let productSellersPage = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
+        let productSellersPage2 = `https://www.amazon.com/gp/offer-listing/${asinList[i]}?ie=UTF8&condition=new`;
+  
+        // This takes us to the product details page where we get the product sales ranking
+        await page.goto(productDetailsPage);
+        let ranking = await getProductRanking(page);
+        ranking = parseInt(ranking);
+        console.log(ranking);
+  
+        // If the ranking is good enough, make sure Amazon doesn't sell it themselves
+        if (ranking && !isNaN(ranking) && ranking < 80500){
+          console.log('checking sellers');
+          
+          // Here we can see who sells each product. Amazon should be top of the list if they sell it
+          let amazonSellsThisProduct = false;
+          await page.goto(productSellersPage);
+          await page.waitForSelector('#olpOfferList');
     
-      }, buybox);
+          if (!amazonSellsThisProduct){
+            // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
+  
+          }
+        }
+      }   
 
-      console.log(ranking);
+      console.log('for loop done');
 
-      // Push items to the DB here that meet certain criteria
     }
+    catch(e){
 
-    console.log('for loop done');
-
+    }
   },
 
-  referenc: async function(req, res){
+  reference: async function(req, res){
 
     try{
       let userId = req.session.user.id;
