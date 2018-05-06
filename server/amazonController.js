@@ -71,30 +71,33 @@ async function getProductRanking(page){
   catch(e){}
 }
 
-async function amazonSellsThisProduct(page){
+async function checkIfAmazonSellsProduct(page){
   try{
+    console.log('checking sellers...');
 
     let sellersBox = '#olpOfferList';
     await page.waitForSelector(sellersBox);
     
     let amazonSellsThisProduct = await page.evaluate((sellersBox) => {
-
-      let amazonSells = false;
-
+        
       if (!document.querySelector(sellersBox)){
         console.log('\n**ERROR: Sellers box selector doesn\'t exist, need new selector for this page**\n');
         return false;
       }
 
-      console.log(document.querySelector(sellersBox));
-      console.log(document.querySelector(sellersBox)[0]);
-
-      let sellersHtml = document.querySelector(sellersBox)[0].innerHTML;
+      let sellersHtml = document.querySelector(sellersBox).innerHTML;
       let amazonPatterns = [
         /alt="Amazon\.com"/,
         /alt="amazon\.com"/,
         /src="https:\/\/images-na\.ssl-images-amazon\.com\/images\/I\/01dXM-J1oeL\.gif/,
-      ]
+      ];
+
+      // Add manufacturer to the patterns to avoid as well
+      let manufacturerElement = document.getElementById('olpProductByline');
+      let text = manufacturerElement.innerText.trim();
+      text = text.replace('by ', '');
+      let pattern = new RegExp(text, 'i');
+      amazonPatterns.push(pattern);
 
       for (let i = 0; i < amazonPatterns.length; i++){
         if (sellersHtml.match(amazonPatterns[i])){
@@ -103,7 +106,6 @@ async function amazonSellsThisProduct(page){
         }
       }
       
-      console.log('Found no amazon seller on this product');
       return false;
 
     }, sellersBox);
@@ -116,203 +118,95 @@ async function amazonSellsThisProduct(page){
   }
 }
 
+async function getNextPageUrl(page){
+  try{
+    console.log('Getting next page URL');
+
+    let nextLink = '#pagnNextLink';
+
+    let newUrl = await page.evaluate((nextLink) => {
+      return document.getElementById('pagnNextLink').href;
+    }, nextLink);
+
+    return newUrl;
+  }
+  catch(e){
+
+  }
+}
+
 module.exports = {
 
   findProducts: async function(req, res){
     try{
 
+      let pageNum = 1;
       const category = req.body.category;
       let searchTerm = req.body.search.split(' ').join('+');
   
-      const browser = await puppeteer.launch({headless: false});
+      const browser = await puppeteer.launch({headless: false, width: 1100, height: 800});
       const page = await browser.newPage(); 
       
       // Main search results URL
       let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
       await page.goto(mainUrl);
-      
-      let asinList = await getAsinsOnPage(page);
-      console.log(asinList);
-  
-      /*
-      ************** AT THIS POINT WE HAVE A LIST OF ASINS, & WE CAN GO TO EACH URL ****************** 
-      */
-  
-      for (let i = 0; i < asinList.length; i++){
-        let productDetailsPage = `https://www.amazon.com/abc/dp/${asinList[i]}`;
-        let productSellersPage = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
-        let productSellersPage2 = `https://www.amazon.com/gp/offer-listing/${asinList[i]}?ie=UTF8&condition=new`;
-  
-        // This takes us to the product details page where we get the product sales ranking
-        await page.goto(productDetailsPage);
-        let ranking = await getProductRanking(page);
-        ranking = parseInt(ranking, 10);
-        console.log(ranking);
-  
-        // If the ranking is good enough, make sure Amazon doesn't sell it themselves
-        if (ranking && !isNaN(ranking) && ranking < 80500){
-          console.log('checking sellers');
-
-          // Here we can see who sells each product. Amazon should be top of the list if they sell it
-          await page.goto(productSellersPage);          
-          let amazonSellsThisProduct = await amazonSellsThisProduct(page);
-          console.log('Amazon sells: ' + amazonSellsThisProduct);
     
-          if (!amazonSellsThisProduct){
-            // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
-            console.log('Pushing ASIN to DB');
+      while (pageNum < 400){
+          
+        let asinList = await getAsinsOnPage(page);
+        console.log(asinList);
+
+        // Get the url for future pages
+        let newUrl = await getNextPageUrl(page);
+        console.log('Next page url: ' + newUrl);
+
+        /*
+        ************** AT THIS POINT WE HAVE A LIST OF ASINS, & WE CAN GO TO EACH URL ****************** 
+        */
+
+        // for (let i = 0; i < 2; i++){
+        for (let i = 0; i < asinList.length; i++){
+          let productDetailsPage = `https://www.amazon.com/abc/dp/${asinList[i]}`;
+          let productSellersPage = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
+          let productSellersPage2 = `https://www.amazon.com/gp/offer-listing/${asinList[i]}?ie=UTF8&condition=new`;
+    
+          // This takes us to the product details page where we get the product sales ranking
+          await page.goto(productDetailsPage);
+          let ranking = await getProductRanking(page);
+          ranking = parseInt(ranking, 10);
+          console.log(ranking);
+    
+          // If the ranking is good enough, make sure Amazon doesn't sell it themselves
+          if (ranking && !isNaN(ranking) && ranking < 80500){
+
+            // Here we can see who sells each product. Amazon should be top of the list if they sell it
+            await page.goto(productSellersPage);
+            let amazonSellsThisProduct = await checkIfAmazonSellsProduct(page);
+            console.log('Amazon sells: ' + amazonSellsThisProduct);
+      
+            if (!amazonSellsThisProduct){
+              // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
+              console.log('Pushing ASIN to DB');
+              
+              var db = app.get('db');
+              db.addAsin([asinList[i]])
+              .then( success => {
+                // return res.status(200).send({successful: true, message: '.catch error', error: err});
+              })
+              .catch(err=>{
+                // return res.status(200).send({successful: false, message: '.catch error', error: err});
+              });
+            }
           }
-        }
-      }   
+        }   
 
-      console.log('for loop done');
-
+        // Go to the next page
+        await page.goto(newUrl);
+      }
     }
     catch(e){
 
     }
   },
-
-  reference: async function(req, res){
-
-    try{
-      let userId = req.session.user.id;
-      
-      if (!req.session || !req.session.user || !req.session.user.id){
-        return console.log('not logged in');
-      }
-      
-      // check to make sure script isn't already running for this user
-      if (userIdsRunningTheScript[userId] && userIdsRunningTheScript[userId].scriptRunning){
-        return console.log('script is already running for this user');
-      }
-      
-      // if userId doesn't exist yet in the object up top, create it
-      if (!userIdsRunningTheScript[userId]){
-        //  we will eventually send this array across in the body
-        let profilesToTarget = ['https://www.instagram.com/psercia/', 'https://www.instagram.com/lpabst/'];
-        
-        userIdsRunningTheScript[userId] = {
-          scriptRunning: true,
-          profilesToTarget: profilesToTarget, 
-          peopleFollowedByScript: [],
-          peopleToUnfollow: [],
-          id: userId,
-          currentDay: Math.round(new Date().getTime() / 1000 / 60 / 60 /24)
-          // need to add username
-        }
-        console.log('creating user in global object:');
-        console.log(userIdsRunningTheScript);
-      }
-      
-      userIdsRunningTheScript[userId].scriptRunning = true; //Script is allowed to start if this line gets run.
-
-      const logInOption = '#react-root > section > main > article > div._kbq82 > div:nth-child(2) > p > a';
-      const emailInput = '#react-root > section > main > article > div._kbq82 > div:nth-child(1) > div > form > div:nth-child(1) > div > div._ev9xl input';
-      const passwordInput = '#react-root > section > main > article > div._kbq82 > div:nth-child(1) > div > form > div:nth-child(2) > div > div._ev9xl input';
-      const logInBtn = '#react-root > section > main > article > div._kbq82 > div:nth-child(1) > div > form > span > button';
-      const profileLink = 'a[href="/'+config.username+'/"]';
-      const followingBtn = '#react-root > section > main > article > header > section > ul > li:nth-child(3) > a';
-      const followingList = '._gs38e ul div';
-      const followersButton = '#react-root > section > main > article > header > section > ul > li:nth-child(2) > a';
-      const followersListReady = 'body > div:nth-child(14) > div > div._o0j5z > div > div._gs38e > ul > div > li:nth-child(1) > div > div._mtnzs > span > button';
-      const followersList = '._p4iax > li:nth-child(0) >';
-      
-      let {email, password} = req.body;
-      
-      const browser = await puppeteer.launch({headless: false});
-      const unfollowPage = await browser.newPage(); 
-      const page = await browser.newPage(); 
-      
-      await page.waitFor(5000);
-      await page.goto('https://www.instagram.com/');
-      await page.waitForSelector(logInOption);
-      await page.click(logInOption);
-      await page.waitForSelector(emailInput);
-      await page.type(emailInput, email);
-      await page.type(passwordInput, password);
-      await page.click(logInBtn);
-      await page.waitFor(5000);
-      await page.goto(userIdsRunningTheScript[userId].profilesToTarget[0]);
-      await page.waitForSelector(followersButton);
-      await page.click(followersButton);
-      await page.waitForSelector(followersListReady)
-      
-      let numberOfPeopleToFollow = 10;
-      let peopleFollowed = 0;
-      
-      for(let i=1; i<=numberOfPeopleToFollow; i++){
-        if(userIdsRunningTheScript[userId].scriptRunning){
-
-          
-          await page.waitFor(5000)
-          if(i<=25){ // This will scroll the page until 270 peeps are on the DOM.
-            await page.evaluate(() => {document.getElementsByClassName('_gs38e')[0].scrollTop = document.getElementsByClassName('_gs38e')[0].scrollHeight });
-          }
-          await page.waitFor(600)
-          
-          ///////////////////////////// Should the follow button get pressed ? ///////////////////////
-          let clickedUsername = await page.evaluate((i) => { 
-            return document.getElementsByClassName('_2g7d5')[i].innerHTML; 
-          }, i);
-          let buttonText = await page.evaluate((i) => {
-            if(document.getElementsByClassName("_mtnzs")[i].children[0].children[0]){
-              console.log('button is there for ', i)
-              return document.getElementsByClassName("_mtnzs")[i].children[0].children[0].innerHTML;
-            } else {
-              return "Nah"
-            }
-          }, i);
-          console.log('buttonText:', i, buttonText)
-          if (buttonText === "Follow" && !followedByScriptBefore(clickedUsername)) {
-            console.log('bout to click ', i)
-            // const followButton = `body > div:nth-child(14) > div > div._o0j5z > div > div._gs38e > ul > div > li:nth-child(${i}) > div > div._mtnzs > span > button`
-            await page.evaluate((i) => {
-              document.getElementsByClassName("_mtnzs")[i].children[0].children[0].click();
-            }, i)
-            let clickedUserInfo = {
-              n:clickedUsername,
-              d:Math.round( new Date().getTime() / 1000 / 60 / 60 / 24 ),
-              u:0
-            }
-            userIdsRunningTheScript[userId].peopleFollowedByScript.push(clickedUserInfo);
-            console.log(userIdsRunningTheScript[userId].peopleFollowedByScript);
-          }
-    
-          let rightNow = Math.round(new Date().getTime() / 1000 / 60 / 60 /24) // days since 1970
-          userIdsRunningTheScript[userId].peopleToUnfollow = userIdsRunningTheScript[userId].peopleFollowedByScript.filter(i => !i.u && i.d <= rightNow - 4)
-          console.log(userIdsRunningTheScript[userId].peopleToUnfollow);
-    
-          if(userIdsRunningTheScript[userId].peopleToUnfollow.length){
-            await unfollowPage.goto(`https://www.instagram.com/${userIdsRunningTheScript[userId].peopleToUnfollow[0].n}/`)
-    
-            //unfollow this person
-          }
-    
-          // unfollow people that were followed over 4 days ago
-    
-          // people followed over 3 months ago should be spliced from the peopleFollowed array (65,000 people in 90 days running 24/7 =~ 66 megabytes of ram)
-    
-        } else {
-          userIdsRunningTheScript[userId].scriptRunning = false;
-          browser.close();
-          res.status(200).send("scriptRunning changed to false")
-          //can do something here if scriptRunning is false?
-        }
-      }
-      userIdsRunningTheScript[userId].scriptRunning = false;
-      browser.close();
-      res.status(200).send("for loop ended")
-      console.log(userIdsRunningTheScript);
-    }
-    catch(error){
-      // userIdsRunningTheScript[userId].scriptRunning = false;
-      // browser.close();
-      res.status(200).send("an error stopped the script")
-      console.log(error)
-    }
-    
-  }
-
 
 }
