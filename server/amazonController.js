@@ -202,6 +202,7 @@ module.exports = {
 
         // Go to the next page
         await page.goto(newUrl);
+        pageNum++;
       }
     }
     catch(e){
