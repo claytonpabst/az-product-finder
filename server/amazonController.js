@@ -183,7 +183,7 @@ module.exports = {
       return res.status(200).send(urls);
     })
     .catch( err => log(err) )
-    
+
   },
 
   closeBrowser: async function(req, res){
@@ -296,5 +296,28 @@ module.exports = {
     }
     catch(e){ log("Error in the main findProducts function"); }
   },
+
+  markAll20: function(req, res){
+    var db = app.get('db');
+
+    let { asins } = req.body;
+    let numUpdated = 0;
+
+    for (let i = 0; i < asins.length; i++){
+      db.markAsinAsLookedAt([asins[i]])
+      .then( done => { 
+
+        numUpdated++;
+        log('Updated 1 asin');
+
+        if (numUpdated === asins.length){
+          return res.status(200).send({error: false, message: 'Updated all 20 ASINS'});
+        }
+
+      })
+      .catch( err => {})
+    }
+
+  }  
 
 }

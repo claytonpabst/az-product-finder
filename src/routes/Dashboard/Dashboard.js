@@ -12,16 +12,26 @@ class Dashboard extends Component {
             categoryInput: '',
             searchInput: '',
             urls: [{}],
+            message: '',
         }
 
+        this.getUrls = this.getUrls.bind(this);
         this.launchAZ = this.launchAZ.bind(this);
+        this.markAll20 = this.markAll20.bind(this);
     }
 
     componentDidMount() {
+        this.getUrls();
+    }
+
+    getUrls(){
         axios.get('/api/getUrls')
         .then( res => {
             console.log(res);
-            this.setState({urls: res.data})
+            this.setState({
+                urls: res.data,
+                message: 'Here are 20 fresh URLs'
+            })
         })
         .catch( err => console.log(err) );
     }
@@ -39,6 +49,7 @@ class Dashboard extends Component {
             })
             .catch( err => console.log(err));
     }
+
     closeBrowser(){
         axios.post('/api/closeBrowser')
             .then(res => {
@@ -47,8 +58,28 @@ class Dashboard extends Component {
             .catch( err => console.log(err));
     }
 
+    markAll20(){
+        let asins = [];
+
+        for (let i = 0; i < this.state.urls.length; i++){
+            asins.push(this.state.urls[i].asin);
+        }
+
+        axios.post('/api/markAll20', {asins})
+        .then( res => {
+            console.log(res);
+            if (res.data && !res.data.error){
+                this.setState({
+                    message: res.data.message || 'Getting new URLs'
+                })
+                this.getUrls();
+            }
+        })
+        .catch(err => console.log(err));
+    }
+
     render() {
-        console.log(this)
+        // console.log(this)
         return (
             <section>
                 <div className="home_wrapper">
@@ -111,6 +142,9 @@ class Dashboard extends Component {
                     <button onClick={this.closeBrowser}> Close Browser </button>
                 </div>
                 <div className='asinList'>
+
+                    <p className='message' >{this.state.message}</p>
+
                     {
                         this.state.urls.map( (item, i) => {
                             let href = `https://www.amazon.com/abc/dp/${item.asin}`;
@@ -120,6 +154,9 @@ class Dashboard extends Component {
                             </div>
                         })
                     }
+
+                    <button onClick={this.markAll20} >Mark all 20 as 'looked_at'</button>
+
                 </div>
             </section>
         );

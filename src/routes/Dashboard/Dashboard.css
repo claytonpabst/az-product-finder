@@ -9,6 +9,11 @@
     padding: 50px 10px;
 }
 
+.message{
+    font-size: 18px;
+    color: green;
+}
+
 .url{
     width: 100%;
     padding: 3px 3px;
