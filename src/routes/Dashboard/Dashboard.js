@@ -29,6 +29,13 @@ class Dashboard extends Component {
             })
             .catch( err => console.log(err));
     }
+    closeBrowser(){
+        axios.post('/api/closeBrowser')
+            .then(res => {
+                console.log(res);
+            })
+            .catch( err => console.log(err));
+    }
 
     componentDidMount() {
 
@@ -97,6 +104,7 @@ class Dashboard extends Component {
                 <p>Search Term</p>
                 <input onChange={(e) => this.setState({ searchInput: e.target.value })} />
                 <button onClick={this.launchAZ}> Launch Amazon </button>
+                <button onClick={this.closeBrowser}> Close Browser </button>
             </div>
         );
     }

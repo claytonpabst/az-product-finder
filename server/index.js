@@ -39,6 +39,7 @@ app.post('/api/createUser', userController.createUser);
 var amazonController = require("./amazonController.js");
 
 app.post('/api/launchAZ', amazonController.findProducts);
+app.post('/api/closeBrowser', amazonController.closeBrowser);
 
 
 
