@@ -177,7 +177,7 @@ class Dashboard extends Component {
                             let href = `https://www.amazon.com/abc/dp/${item.asin}`;
                             return <div className='url' key={i}>
                                 <a href={href} target='_blank' >{item.asin}</a>
-                                <p>Ranking: {item.ranking}</p>
+                                <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
                                 <button onClick={() => this.markOneUrl(i)} >Mark this URL as looked at</button>
                             </div>
                         })
