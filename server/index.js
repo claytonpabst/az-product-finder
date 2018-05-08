@@ -38,8 +38,11 @@ app.post('/api/createUser', userController.createUser);
 
 var amazonController = require("./amazonController.js");
 
+app.get('/api/getUrls', amazonController.getUrls);
 app.post('/api/launchAZ', amazonController.findProducts);
 app.post('/api/closeBrowser', amazonController.closeBrowser);
+app.post('/api/markOneUrl', amazonController.markOneUrl);
+app.post('/api/markAll20', amazonController.markAll20);
 
 
 
