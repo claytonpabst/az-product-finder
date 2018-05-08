@@ -55,7 +55,7 @@ async function getAsinsOnPage(page){
 
     return asinList;
   }
-  catch(e){}
+  catch(e){ log("Error with getAsinsOnPage func"); }
 }
 
 async function getProductRanking(page){
@@ -98,7 +98,7 @@ async function getProductRanking(page){
     log(ranking);
     return ranking;
   }
-  catch(e){}
+  catch(e){ log("Error with getProductRanking func"); }
 }
 
 async function checkIfAmazonSellsProduct(page){
@@ -143,9 +143,7 @@ async function checkIfAmazonSellsProduct(page){
     return amazonSellsThisProduct;
 
   }
-  catch(e){
-
-  }
+  catch(e){ log("Error with checkIfAmazonSellsProduct func"); }
 }
 
 async function getNextPageUrl(page){
@@ -160,9 +158,7 @@ async function getNextPageUrl(page){
 
     return newUrl;
   }
-  catch(e){
-    log("Error with getNextPageUrl func");
-  }
+  catch(e){ log("Error with getNextPageUrl func"); }
 }
 
 async function getNumberOfPagesToSearch(page){
@@ -173,16 +169,14 @@ async function getNumberOfPagesToSearch(page){
     }, className);
     return numberOfPages;
   }
-  catch(e){
-    log("Error with getNumberOfPagesToSearch func");
-  }
+  catch(e){ log("Error with getNumberOfPagesToSearch func"); }
 }
 
 module.exports = {
 
   closeBrowser: async function(req, res){
     await browser.close();
-    browser = null
+    browser = null;
     log(" ");
     log("Browser Closed From Front End.");
     return;
@@ -197,7 +191,7 @@ module.exports = {
       const category = req.body.category;
       let searchTerm = req.body.search.split(' ').join('+');
   
-      if(browser === null){
+      if(!browser){
         browser = await puppeteer.launch({headless: false});
       }
       const page = await browser.newPage(); 
@@ -245,7 +239,7 @@ module.exports = {
       
             if (!amazonSellsThisProduct){
               // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
-              log('Pushing ASIN to DB');
+              log('Getting ASINS from DB');
               
               var db = app.get('db');
               db.getAllAsins()
@@ -254,6 +248,7 @@ module.exports = {
                 let duplicate = false;
                 let newAsin = asinList[i];
 
+                // check if the db already has this asin or not
                 for (let i = 0; i < dbAsins.length; i++){
                   if (dbAsins[i].asin === newAsin){
                     duplicate = true;
@@ -261,14 +256,14 @@ module.exports = {
                 }
 
                 if (!duplicate){
-                  log('found new one');
+                  log('Pushing new ASIN to DB');
                   db.addAsin([newAsin, ranking])
                   .then( success => {
                     // return res.status(200).send({successful: true, message: '.catch error', error: err});
                   })
                   .catch(err=>{});
                 }else{
-                  log('duplicate: ' + newAsin);
+                  log('duplicate (ASIN already in DB): ' + newAsin);
                 }
 
               })
@@ -287,9 +282,7 @@ module.exports = {
         pageNum++;
       }
     }
-    catch(e){
-      log("Error in the main function");
-    }
+    catch(e){ log("Error in the main findProducts function"); }
   },
 
 }
