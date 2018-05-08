@@ -174,17 +174,7 @@ async function getNumberOfPagesToSearch(page){
 
 module.exports = {
 
-  getUrls: (req, res) => {
-    var db = app.get('db');
 
-    db.getUrls()
-    .then( urls => {
-      log(urls);
-      return res.status(200).send(urls);
-    })
-    .catch( err => log(err) )
-
-  },
 
   closeBrowser: async function(req, res){
     await browser.close();
@@ -297,41 +287,8 @@ module.exports = {
     catch(e){ log("Error in the main findProducts function"); }
   },
 
-  markOneUrl: function(req, res){
-    var db = app.get('db');
 
-    let { asin } = req.body;
 
-    db.markAsinAsLookedAt([asin])
-    .then( done => { 
-      log('Updated 1 asin');
-      return res.status(200).send({error: false, message: 'Updated 1 ASIN'});
-    })
-    .catch( err => {})
-
-  },  
-
-  markAll20: function(req, res){
-    var db = app.get('db');
-
-    let { asins } = req.body;
-    let numUpdated = 0;
-
-    for (let i = 0; i < asins.length; i++){
-      db.markAsinAsLookedAt([asins[i]])
-      .then( done => { 
-
-        numUpdated++;
-        log('Updated 1 asin');
-
-        if (numUpdated === asins.length){
-          return res.status(200).send({error: false, message: 'Updated all 20 ASINS'});
-        }
-
-      })
-      .catch( err => {})
-    }
-
-  },
+  
 
 }

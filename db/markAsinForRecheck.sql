@@ -1,3 +1,3 @@
 update products
-set looked_at = true
+set needs_recheck = true
 where id = $1

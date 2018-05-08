@@ -59,11 +59,36 @@ class Dashboard extends Component {
             .catch( err => console.log(err));
     }
 
-    markOneUrl(i){
-        let {urls} = this.state;
-        let asin = urls[i].asin;
+    markOneUrl(id){
 
-        axios.post('/api/markOneUrl', {asin})
+        let urls = this.state.urls
+
+        axios.post('/api/markOneUrl', {id})
+        .then( res => {
+            let message;
+
+            if (!res.data || !res.data.message){
+                message = 'Error, please try again';
+            }else{
+                message = res.data.message;
+            }
+            if (res.status === 200){
+                for(let i=0; i<urls.length; i++){
+                    if(urls[i].id === id){
+                        urls[i].looked_at = true;
+                    }    
+                }
+            }       
+
+            // urls.splice(i, 1);
+
+            this.setState({ urls, message })
+        })
+    }
+
+    markAsinForRecheck = (id) => {
+
+        axios.post('/api/markAsinForRecheck', {id})
         .then( res => {
             let message;
 
@@ -73,9 +98,7 @@ class Dashboard extends Component {
                 message = res.data.message;
             }
 
-            urls.splice(i, 1);
-
-            this.setState({urls, message})
+            this.setState({ message })
         })
     }
 
@@ -85,20 +108,19 @@ class Dashboard extends Component {
             return this.getUrls();
         }
 
-        let asins = [];
+        let idList = [];
 
         for (let i = 0; i < this.state.urls.length; i++){
-            asins.push(this.state.urls[i].asin);
+            idList.push(this.state.urls[i].id);
         }
 
-        axios.post('/api/markAll20', {asins})
+        axios.post('/api/markAll20', {idList})
         .then( res => {
             console.log(res);
             if (res.data && !res.data.error){
                 this.setState({
                     message: res.data.message || 'Getting new URLs'
                 })
-                this.getUrls();
             }
         })
         .catch(err => console.log(err));
@@ -174,11 +196,18 @@ class Dashboard extends Component {
 
                     {
                         this.state.urls.map( (item, i) => {
+                            console.log(item);
                             let href = `https://www.amazon.com/abc/dp/${item.asin}`;
                             return <div className='url' key={i}>
                                 <a href={href} target='_blank' >{item.asin}</a>
                                 <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
-                                <button onClick={() => this.markOneUrl(i)} >Mark this URL as looked at</button>
+                                <p>Manufacturer: {item.manufacturer || 'No manufacturer obtained'}</p>
+                                {
+                                    !item.looked_at ?
+                                    <button onClick={() => this.markOneUrl(item.id)} >Mark this URL as looked at</button> :
+                                    <button onClick={() => this.markOneUrl(item.id)} >Undo</button>
+                                }
+                                <button onClick={() => {this.markAsinForRecheck(item.id); this.markOneUrl(item.id) }} >Mark this URL For Recheck</button>
                             </div>
                         })
                     }
