@@ -3,7 +3,15 @@ var config = require('./config.js');
 
 const puppeteer = require('puppeteer');
 
+// change debug to true to see the console.log messages
+let debug = false; 
 let browser = null;
+
+function log(content){
+  if (debug){
+    console.log(content);
+  }
+}
 
 async function getAsinsOnPage(page){
   try{
@@ -167,8 +175,8 @@ module.exports = {
   closeBrowser: async function(req, res){
     await browser.close();
     browser = null
-    console.log(" ");
-    console.log("Browser Closed From Front End.");
+    log(" ");
+    log("Browser Closed From Front End.");
     return;
   },
 
@@ -193,14 +201,14 @@ module.exports = {
       while (pageNum < pagesToSearch){
 
         pagesToSearch = await getNumberOfPagesToSearch(page);
-        console.log("Searching Page " + pageNum + " of " + pagesToSearch);
+        log("Searching Page " + pageNum + " of " + pagesToSearch);
           
         let asinList = await getAsinsOnPage(page);
-        // console.log(asinList);
+        // log(asinList);
 
         // Get the url for future pages
         let newUrl = await getNextPageUrl(page);
-        console.log('Next page url: ' + newUrl);
+        log('Next page url: ' + newUrl);
 
         /*
         ************** AT THIS POINT WE HAVE A LIST OF ASINS, & WE CAN GO TO EACH URL ****************** 
@@ -218,7 +226,7 @@ module.exports = {
           ranking = ranking ? ranking : "100000000000";
           ranking = ranking.replace(",", "")
           ranking = parseInt(ranking, 10);
-          // console.log(ranking);
+          // log(ranking);
     
           // If the ranking is good enough, make sure Amazon doesn't sell it themselves
           if (ranking && !isNaN(ranking) && ranking < 80500){
@@ -226,11 +234,11 @@ module.exports = {
             // Here we can see who sells each product. Amazon should be top of the list if they sell it
             await page.goto(productSellersPage);
             let amazonSellsThisProduct = await checkIfAmazonSellsProduct(page);
-            console.log('Amazon sells: ' + amazonSellsThisProduct);
+            log('Amazon sells: ' + amazonSellsThisProduct);
       
             if (!amazonSellsThisProduct){
               // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
-              console.log('Pushing ASIN to DB');
+              log('Pushing ASIN to DB');
               
               var db = app.get('db');
               db.addAsin([asinList[i], ranking])
@@ -247,7 +255,7 @@ module.exports = {
         // Go to the next page
         if (pageNum > pagesToSearch) {
           browser.close()
-          console.log("Browser Closed.")
+          log("Browser Closed.")
           return;
         }
         await page.goto(newUrl);
@@ -255,7 +263,7 @@ module.exports = {
       }
     }
     catch(e){
-      console.log("There was an error!", e)
+      log("There was an error!", e)
     }
   },
 
