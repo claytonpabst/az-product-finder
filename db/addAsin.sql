@@ -1,2 +1,2 @@
-insert into products (asin, looked_at)
-values ($1, false)
+insert into products (asin, looked_at, ranking)
+values ($1, false, $2)

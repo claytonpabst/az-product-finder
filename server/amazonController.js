@@ -182,7 +182,7 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(browser === null){
-        browser = await puppeteer.launch({headless: false, width: 1100, height: 800});
+        browser = await puppeteer.launch({headless: false});
       }
       const page = await browser.newPage(); 
       
@@ -233,7 +233,7 @@ module.exports = {
               console.log('Pushing ASIN to DB');
               
               var db = app.get('db');
-              db.addAsin([asinList[i]])
+              db.addAsin([asinList[i], ranking])
               .then( success => {
                 // return res.status(200).send({successful: true, message: '.catch error', error: err});
               })
