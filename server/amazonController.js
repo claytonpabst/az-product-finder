@@ -174,6 +174,18 @@ async function getNumberOfPagesToSearch(page){
 
 module.exports = {
 
+  getUrls: (req, res) => {
+    var db = app.get('db');
+
+    db.getUrls()
+    .then( urls => {
+      log(urls);
+      return res.status(200).send(urls);
+    })
+    .catch( err => log(err) )
+    
+  },
+
   closeBrowser: async function(req, res){
     await browser.close();
     browser = null;

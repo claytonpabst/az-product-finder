@@ -1,0 +1,21 @@
+
+.asinList{
+    width: 40%;
+    min-width: 300px;
+    min-height: 300px;
+    border-top: 1px solid black;
+    margin-top: 50px;
+    display: block;
+    padding: 50px 10px;
+}
+
+.url{
+    width: 100%;
+    padding: 3px 3px;
+    display: flex;
+    justify-content: left;
+}
+
+.url a{
+    margin-right: 10px;
+}
