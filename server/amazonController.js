@@ -3,6 +3,8 @@ var config = require('./config.js');
 
 const puppeteer = require('puppeteer');
 
+let browser = null;
+
 async function getAsinsOnPage(page){
   try{
     console.log('Getting ASINs for the products on this page');
@@ -47,25 +49,42 @@ async function getAsinsOnPage(page){
 
 async function getProductRanking(page){
   try{
+    console.log(" ");        
     console.log('Getting Product Ranking');
 
     let buybox = '#buybox';
-    await page.waitForSelector(buybox);
+    // page.waitForSelector(buybox);
+    
 
     let ranking = await page.evaluate((buybox) => {
+      timesChecked = 0;
+      function waitForS(selector){
+        if(document.querySelector(selector)){
+          let rank = "100000000000";
+          
+          if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)){
+            rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]
+          }
+          console.log(rank);
+    
+          return rank;
 
-      let rank = 100000000000;
-      
-      if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)){
-        rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]
+        } else {
+          timesChecked++;
+          if(timesChecked > 10){ 
+            return "10000000000"
+          }
+          setTimeout(function(){
+            waitForS(selector);
+          }, 500)
+        }
       }
 
-      console.log(rank);
-
-      return rank;
-  
+      return waitForS(buybox);
+      
     }, buybox);
-
+    
+    console.log(ranking);
     return ranking;
   }
   catch(e){}
@@ -135,26 +154,49 @@ async function getNextPageUrl(page){
   }
 }
 
+async function getNumberOfPagesToSearch(page){
+  let className = "pagnDisabled";
+  let numberOfPages = await page.evaluate((className) => {
+    return parseInt(document.getElementsByClassName("pagnDisabled")[0].innerText)
+  }, className);
+  return numberOfPages;
+}
+
 module.exports = {
 
+  closeBrowser: async function(req, res){
+    await browser.close();
+    browser = null
+    console.log(" ");
+    console.log("Browser Closed From Front End.");
+    return;
+  },
+
   findProducts: async function(req, res){
+    
     try{
 
       let pageNum = 1;
+      let pagesToSearch = 400;
       const category = req.body.category;
       let searchTerm = req.body.search.split(' ').join('+');
   
-      const browser = await puppeteer.launch({headless: false, width: 1100, height: 800});
+      if(browser === null){
+        browser = await puppeteer.launch({headless: false, width: 1100, height: 800});
+      }
       const page = await browser.newPage(); 
       
       // Main search results URL
       let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
       await page.goto(mainUrl);
     
-      while (pageNum < 400){
+      while (pageNum < pagesToSearch){
+
+        pagesToSearch = await getNumberOfPagesToSearch(page);
+        console.log("Searching Page " + pageNum + " of " + pagesToSearch);
           
         let asinList = await getAsinsOnPage(page);
-        console.log(asinList);
+        // console.log(asinList);
 
         // Get the url for future pages
         let newUrl = await getNextPageUrl(page);
@@ -173,8 +215,10 @@ module.exports = {
           // This takes us to the product details page where we get the product sales ranking
           await page.goto(productDetailsPage);
           let ranking = await getProductRanking(page);
+          ranking = ranking ? ranking : "100000000000";
+          ranking = ranking.replace(",", "")
           ranking = parseInt(ranking, 10);
-          console.log(ranking);
+          // console.log(ranking);
     
           // If the ranking is good enough, make sure Amazon doesn't sell it themselves
           if (ranking && !isNaN(ranking) && ranking < 80500){
@@ -201,12 +245,17 @@ module.exports = {
         }   
 
         // Go to the next page
+        if (pageNum > pagesToSearch) {
+          browser.close()
+          console.log("Browser Closed.")
+          return;
+        }
         await page.goto(newUrl);
         pageNum++;
       }
     }
     catch(e){
-
+      console.log("There was an error!", e)
     }
   },
 
