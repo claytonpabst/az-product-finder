@@ -17,6 +17,7 @@ class Dashboard extends Component {
 
         this.getUrls = this.getUrls.bind(this);
         this.launchAZ = this.launchAZ.bind(this);
+        this.markOneUrl = this.markOneUrl.bind(this);
         this.markAll20 = this.markAll20.bind(this);
     }
 
@@ -58,7 +59,32 @@ class Dashboard extends Component {
             .catch( err => console.log(err));
     }
 
+    markOneUrl(i){
+        let {urls} = this.state;
+        let asin = urls[i].asin;
+
+        axios.post('/api/markOneUrl', {asin})
+        .then( res => {
+            let message;
+
+            if (!res.data || !res.data.message){
+                message = 'Error, please try again';
+            }else{
+                message = res.data.message;
+            }
+
+            urls.splice(i, 1);
+
+            this.setState({urls, message})
+        })
+    }
+
+    // Marks all remaining urls as 'looked at' then gets new URLs. If no URLs remain, it just gets new urls
     markAll20(){
+        if (this.state.urls.length === 0){
+            return this.getUrls();
+        }
+
         let asins = [];
 
         for (let i = 0; i < this.state.urls.length; i++){
@@ -79,7 +105,8 @@ class Dashboard extends Component {
     }
 
     render() {
-        // console.log(this)
+        let numAsins = this.state.urls.length;
+
         return (
             <section>
                 <div className="home_wrapper">
@@ -151,11 +178,14 @@ class Dashboard extends Component {
                             return <div className='url' key={i}>
                                 <a href={href} target='_blank' >{item.asin}</a>
                                 <p>Ranking: {item.ranking}</p>
+                                <button onClick={() => this.markOneUrl(i)} >Mark this URL as looked at</button>
                             </div>
                         })
                     }
 
-                    <button onClick={this.markAll20} >Mark all 20 as 'looked_at'</button>
+                    <button onClick={this.markAll20} >
+                        {numAsins > 0 ? `Mark all ${numAsins} as 'looked_at'` : 'Get New Urls'}
+                    </button>
 
                 </div>
             </section>

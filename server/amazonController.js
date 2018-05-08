@@ -297,6 +297,20 @@ module.exports = {
     catch(e){ log("Error in the main findProducts function"); }
   },
 
+  markOneUrl: function(req, res){
+    var db = app.get('db');
+
+    let { asin } = req.body;
+
+    db.markAsinAsLookedAt([asin])
+    .then( done => { 
+      log('Updated 1 asin');
+      return res.status(200).send({error: false, message: 'Updated 1 ASIN'});
+    })
+    .catch( err => {})
+
+  },  
+
   markAll20: function(req, res){
     var db = app.get('db');
 
@@ -318,6 +332,6 @@ module.exports = {
       .catch( err => {})
     }
 
-  }  
+  },
 
 }
