@@ -33,7 +33,7 @@ module.exports = {
     db.markAsinForRecheck([id])
     .then( done => { 
       log('Updated 1 asin');
-      return res.status(200).send({error: false, message: 'Marked 1 ASIN For Recheck'});
+      return res.status(200).send({error: false, message: 'Marked 1 ASIN for recheck'});
     })
     .catch( err => {})
 
@@ -42,12 +42,12 @@ module.exports = {
   markOneUrl: function(req, res){
     var db = app.get('db');
 
-    let { asin } = req.body;
+    let { id } = req.body;
 
-    db.markAsinAsLookedAt([asin])
+    db.markAsinAsLookedAt([id])
     .then( done => { 
       log('Updated 1 asin');
-      return res.status(200).send({error: false, message: 'Updated 1 ASIN'});
+      return res.status(200).send({error: false, message: 'Looked at 1 ASIN'});
     })
     .catch( err => {})
 
@@ -56,11 +56,11 @@ module.exports = {
   markAll20: function(req, res){
     var db = app.get('db');
 
-    let { asins } = req.body;
+    let { idList } = req.body;
     let numUpdated = 0;
 
-    for (let i = 0; i < asins.length; i++){
-      db.markAsinAsLookedAt([asins[i]])
+    for (let i = 0; i < idList.length; i++){
+      db.markAsinAsLookedAt([idList[i]])
       .then( done => { 
 
         numUpdated++;
