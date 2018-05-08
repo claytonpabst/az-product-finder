@@ -73,9 +73,25 @@ class Dashboard extends Component {
                 message = res.data.message;
             }
 
-            urls.splice(i, 1);
+            // urls.splice(i, 1);
 
             this.setState({urls, message})
+        })
+    }
+
+    markAsinForRecheck = (id) => {
+
+        axios.post('/api/markAsinForRecheck', {id})
+        .then( res => {
+            let message;
+
+            if (!res.data || !res.data.message){
+                message = 'Error, please try again';
+            }else{
+                message = res.data.message;
+            }
+
+            this.setState({ message })
         })
     }
 
@@ -174,11 +190,13 @@ class Dashboard extends Component {
 
                     {
                         this.state.urls.map( (item, i) => {
+                            console.log(item);
                             let href = `https://www.amazon.com/abc/dp/${item.asin}`;
                             return <div className='url' key={i}>
                                 <a href={href} target='_blank' >{item.asin}</a>
                                 <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
                                 <button onClick={() => this.markOneUrl(i)} >Mark this URL as looked at</button>
+                                <button onClick={() => {this.markAsinForRecheck(item.id); this.markOneUrl(i) }} >Mark this URL For Recheck</button>
                             </div>
                         })
                     }
