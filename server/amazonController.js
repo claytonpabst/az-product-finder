@@ -4,9 +4,10 @@ var config = require('./config.js');
 const puppeteer = require('puppeteer');
 
 // change debug to true to see the console.log messages
-let debug = false; 
+let debug = true; 
 let browser = null;
 
+// ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
   if (debug){
     console.log(content);
@@ -15,7 +16,7 @@ function log(content){
 
 async function getAsinsOnPage(page){
   try{
-    console.log('Getting ASINs for the products on this page');
+    log('Getting ASINs for the products on this page');
 
     // This is the list of items on this page (search results)
     let listSelector = '#s-results-list-atf';
@@ -26,7 +27,7 @@ async function getAsinsOnPage(page){
 
       let asins = [];
 
-      // this console.logs to the Puppeteer window console
+      // this logs to the Puppeteer window console
       console.log(listSelector); 
       console.log(document.querySelectorAll(listSelector));
 
@@ -44,11 +45,13 @@ async function getAsinsOnPage(page){
         }
       }
 
+      // console.log(asins);
+
       return asins;
   
     }, listSelector);
 
-    // await page.waitfor(100000);
+    log(asinList);
 
     return asinList;
   }
@@ -57,8 +60,8 @@ async function getAsinsOnPage(page){
 
 async function getProductRanking(page){
   try{
-    console.log(" ");        
-    console.log('Getting Product Ranking');
+    log(" ");        
+    log('Getting Product Ranking');
 
     let buybox = '#buybox';
     // page.waitForSelector(buybox);
@@ -92,7 +95,7 @@ async function getProductRanking(page){
       
     }, buybox);
     
-    console.log(ranking);
+    log(ranking);
     return ranking;
   }
   catch(e){}
@@ -100,7 +103,7 @@ async function getProductRanking(page){
 
 async function checkIfAmazonSellsProduct(page){
   try{
-    console.log('checking sellers...');
+    log('checking sellers...');
 
     let sellersBox = '#olpOfferList';
     await page.waitForSelector(sellersBox);
@@ -147,7 +150,7 @@ async function checkIfAmazonSellsProduct(page){
 
 async function getNextPageUrl(page){
   try{
-    console.log('Getting next page URL');
+    log('Getting next page URL');
 
     let nextLink = '#pagnNextLink';
 
@@ -158,16 +161,21 @@ async function getNextPageUrl(page){
     return newUrl;
   }
   catch(e){
-
+    log("Error with getNextPageUrl func");
   }
 }
 
 async function getNumberOfPagesToSearch(page){
-  let className = "pagnDisabled";
-  let numberOfPages = await page.evaluate((className) => {
-    return parseInt(document.getElementsByClassName("pagnDisabled")[0].innerText)
-  }, className);
-  return numberOfPages;
+  try{
+    let className = "pagnDisabled";
+    let numberOfPages = await page.evaluate((className) => {
+      return parseInt(document.getElementsByClassName("pagnDisabled")[0].innerText)
+    }, className);
+    return numberOfPages;
+  }
+  catch(e){
+    log("Error with getNumberOfPagesToSearch func");
+  }
 }
 
 module.exports = {
@@ -204,7 +212,7 @@ module.exports = {
         log("Searching Page " + pageNum + " of " + pagesToSearch);
           
         let asinList = await getAsinsOnPage(page);
-        // log(asinList);
+        log(asinList);
 
         // Get the url for future pages
         let newUrl = await getNextPageUrl(page);
@@ -214,12 +222,11 @@ module.exports = {
         ************** AT THIS POINT WE HAVE A LIST OF ASINS, & WE CAN GO TO EACH URL ****************** 
         */
 
-        // for (let i = 0; i < 2; i++){
         for (let i = 0; i < asinList.length; i++){
           let productDetailsPage = `https://www.amazon.com/abc/dp/${asinList[i]}`;
           let productSellersPage = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
           let productSellersPage2 = `https://www.amazon.com/gp/offer-listing/${asinList[i]}?ie=UTF8&condition=new`;
-    
+          
           // This takes us to the product details page where we get the product sales ranking
           await page.goto(productDetailsPage);
           let ranking = await getProductRanking(page);
@@ -241,13 +248,31 @@ module.exports = {
               log('Pushing ASIN to DB');
               
               var db = app.get('db');
-              db.addAsin([asinList[i], ranking])
-              .then( success => {
-                // return res.status(200).send({successful: true, message: '.catch error', error: err});
+              db.getAllAsins()
+              .then( dbAsins => {
+
+                let duplicate = false;
+                let newAsin = asinList[i];
+
+                for (let i = 0; i < dbAsins.length; i++){
+                  if (dbAsins[i].asin === newAsin){
+                    duplicate = true;
+                  }
+                }
+
+                if (!duplicate){
+                  log('found new one');
+                  db.addAsin([newAsin, ranking])
+                  .then( success => {
+                    // return res.status(200).send({successful: true, message: '.catch error', error: err});
+                  })
+                  .catch(err=>{});
+                }else{
+                  log('duplicate: ' + newAsin);
+                }
+
               })
-              .catch(err=>{
-                // return res.status(200).send({successful: false, message: '.catch error', error: err});
-              });
+              .catch(err=>{});
             }
           }
         }   
@@ -263,7 +288,7 @@ module.exports = {
       }
     }
     catch(e){
-      log("There was an error!", e)
+      log("Error in the main function");
     }
   },
 
