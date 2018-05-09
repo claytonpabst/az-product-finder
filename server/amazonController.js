@@ -217,7 +217,7 @@ async function checkIfAmazonSellsProduct(page){
 
       return false;
 
-    }, sellersBox, doesSellerMakeThisProduct);
+    }, sellersBox, doesSellerMakeThisProduct(manufacturer, sellers));
 
     return amazonSellsThisProduct;
 
