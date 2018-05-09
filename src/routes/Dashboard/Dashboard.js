@@ -174,9 +174,10 @@ class Dashboard extends Component {
 
                     {
                         this.state.urls.map( (item, i) => {
-                            let href = `https://www.amazon.com/abc/dp/${item.asin}`;
+                            let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
+                            let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
                             return <div className='url' key={i}>
-                                <a href={href} target='_blank' >{item.asin}</a>
+                                <a href={ productSellers } target='_blank' >{item.asin}</a>
                                 <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
                                 <button onClick={() => this.markOneUrl(i)} >Mark this URL as looked at</button>
                             </div>
