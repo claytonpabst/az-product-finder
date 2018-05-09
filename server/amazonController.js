@@ -323,6 +323,20 @@ module.exports = {
     catch(e){ log("Error in the main findProducts function"); }
   },
 
+  markAsInvestigating: function(req, res){
+    var db = app.get('db');
+
+    let { asin } = req.body;
+
+    db.markAsInvestigating([asin])
+    .then( done => { 
+      log('Updated 1 asin as being investigated');
+      return res.status(200).send({error: false, message: 'Marked 1 ASIN as being investigated'});
+    })
+    .catch( err => {})
+
+  },  
+
   markOneUrl: function(req, res){
     var db = app.get('db');
 
@@ -330,7 +344,7 @@ module.exports = {
 
     db.markAsinAsLookedAt([asin])
     .then( done => { 
-      log('Updated 1 asin');
+      log('Updated 1 asin as looked at');
       return res.status(200).send({error: false, message: 'Updated 1 ASIN'});
     })
     .catch( err => {})

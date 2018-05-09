@@ -24,3 +24,20 @@
 .url a, .url p{
     margin-right: 10px;
 }
+
+.investigatingBtn{
+    background: #cfc;
+    color: green;
+    border: 1px solid black;
+    margin-right: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.removeBtn{
+    background: rgb(255, 178, 178);
+    color: red;
+    border: 1px solid darkred;
+    border-radius: 3px;
+    cursor: pointer;
+}
