@@ -135,6 +135,25 @@ async function checkIfAmazonSellsProduct(page){
           return true;
         }
       }
+
+      // Attempt to get a list of all the sellers here
+      let sellersArr = [];
+      if (document.querySelectorAll('#olpOfferList .olpOffer')){
+        let sellersList = document.querySelectorAll('#olpOfferList .olpOffer');
+        for (let i = 0; i < sellersList.length; i++){
+          let name;
+          try{
+            name = sellersList[i].children[3].children[0].innerText;
+          }
+          catch(e){}
+          if (name) { sellersArr.push(name.toLowerCase()); }
+        }
+      }
+
+      // If there's only 2 sellers and they are both the same seller, we don't want to list it
+      if (sellersArr.length === 2 && sellersArr[0] === sellersArr[1]){
+        return true;
+      }
       
       return false;
 
