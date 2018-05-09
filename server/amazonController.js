@@ -3,9 +3,11 @@ var config = require('./config.js');
 
 const puppeteer = require('puppeteer');
 
-// change debug to true to see the console.log messages
-let debug = true; 
 let browser = null;
+
+// Settings
+let debug = false; 
+let headless = true;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
@@ -129,6 +131,11 @@ async function checkIfAmazonSellsProduct(page){
       let pattern = new RegExp(text, 'i');
       amazonPatterns.push(pattern);
 
+      // Check if manufacture has spaces, if so remove them and add it as another pattern
+      let noSpacesText = text.replace(' ', '');
+      let noSpacesPattern = new RegExp(noSpacesText, 'i');
+      amazonPatterns.push(noSpacesPattern);
+
       for (let i = 0; i < amazonPatterns.length; i++){
         if (sellersHtml.match(amazonPatterns[i])){
           console.log('Found Amazon Pattern');
@@ -223,7 +230,7 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless: false});
+        browser = await puppeteer.launch({headless: headless});
       }
       const page = await browser.newPage(); 
       
@@ -287,7 +294,7 @@ module.exports = {
                 }
 
                 if (!duplicate){
-                  log('Pushing new ASIN to DB');
+                  log('Pushing new ASIN to DB: ' + newAsin);
                   db.addAsin([newAsin, ranking])
                   .then( success => {
                     // return res.status(200).send({successful: true, message: '.catch error', error: err});

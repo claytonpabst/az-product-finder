@@ -21,6 +21,6 @@
     justify-content: left;
 }
 
-.url a{
+.url a, .url p{
     margin-right: 10px;
 }
