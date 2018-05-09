@@ -41,6 +41,7 @@ var asinController = require("./asinController.js");
   app.get('/api/getInvestigatingList', asinController.getInvestigatingList);
   app.post('/api/markAsInvestigating', asinController.markAsInvestigating);
   app.post('/api/markOneUrl', asinController.markOneUrl);
+  app.post('/api/markAsFreshUrl', asinController.markAsFreshUrl);
   app.post('/api/markAsinForRecheck', asinController.markAsinForRecheck);
   app.post('/api/markAll20', asinController.markAll20);
 

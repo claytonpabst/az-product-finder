@@ -70,7 +70,8 @@ class Dashboard extends Component {
 
     toggleInvestigatingList(){
         this.setState({
-            showInvestigatingList: !this.state.showInvestigatingList
+            showInvestigatingList: !this.state.showInvestigatingList,
+            message: '',
         })
     }
 
@@ -82,15 +83,14 @@ class Dashboard extends Component {
             .catch( err => console.log(err));
     }
 
-    markAsInvestigating(i){
+    markAsInvestigating(id, i){
         if (this.state.urls.length === 0){
             return this.getUrls();
         }
 
         let {urls} = this.state;
-        let asin = urls[i].asin;
 
-        axios.post('/api/markAsInvestigating', {asin})
+        axios.post('/api/markAsInvestigating', {id})
         .then( res => {
             let message;
 
@@ -100,12 +100,9 @@ class Dashboard extends Component {
                 message = res.data.message;
             }
 
-            arr.splice(i, 1);
+            urls.splice(i, 1);
 
-            this.setState({
-                [whichList]: arr, 
-                message: message
-            })
+            this.setState({urls, message});
         })
         .catch(err => {});
     }
@@ -138,6 +135,32 @@ class Dashboard extends Component {
                 [whichList]: urls, 
                 message 
             })
+        })
+    }
+
+    markAsFreshUrl(id){
+        let urls = this.state.urls;
+
+        axios.post('/api/markAsFreshUrl', {id})
+        .then( res => {
+            console.log(res);
+            let message;
+
+            if (!res.data || !res.data.message){
+                message = 'Error, please try again';
+            }else{
+                message = res.data.message;
+            }
+            if (res.status === 200){
+                for(let i=0; i<urls.length; i++){
+                    if(urls[i].id === id){
+                        urls[i].looked_at = false;
+                        urls[i].needs_recheck = false;
+                    }    
+                }
+            }
+
+            this.setState({ urls, message })
         })
     }
 
@@ -266,13 +289,13 @@ class Dashboard extends Component {
                                     <a href={ productSellers } target='_blank' >{item.asin}</a>
                                     <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
                                     <p>Manufacturer: {item.manufacturer || 'No manufacturer obtained'}</p>
-                                    <button className='investigatingBtn' onClick={() => this.markAsInvestigating(i)} >Mark as INVESTIGATING</button>
+                                    <button className='investigatingBtn' onClick={() => this.markAsInvestigating(item.id, i)} >Mark as INVESTIGATING</button>
                                     {
-                                        !item.looked_at ? // item.id
-                                        <button className='removeBtn' onClick={() => this.markOneUrl(i, 'urls')} >REMOVE (Mark as looked at)</button> :
-                                        <button onClick={() => this.markOneUrl(item.id)} >Undo</button>
+                                        !item.looked_at ? 
+                                        <button className='removeBtn' onClick={() => this.markOneUrl(item.id, 'urls')} >REMOVE (Mark as looked at)</button> :
+                                        <button onClick={() => this.markAsFreshUrl(item.id)} >Undo</button>
                                     }
-                                    <button onClick={() => {this.markAsinForRecheck(item.id); this.markOneUrl(item.id) }} >Mark this URL For Recheck</button>
+                                    <button onClick={() => {this.markAsinForRecheck(item.id); this.markOneUrl(item.id, 'urls') }} >Mark For Recheck</button>
                                 </div>
                             })
                         }
@@ -295,7 +318,7 @@ class Dashboard extends Component {
 
                                 return <div className='investigatingListItem' key={i}>
                                     <p>ASIN: <span><a href={ productSellers } target='_blank' > {item.asin} </a></span></p>
-                                    <button onClick={() => this.markOneUrl(i, 'investigating')}>Mark as looked at</button>
+                                    <button onClick={() => this.markOneUrl(item.id, 'investigating')}>Mark as looked at</button>
                                 </div>
                             })
                         }

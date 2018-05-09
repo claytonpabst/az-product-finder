@@ -1,3 +1,4 @@
 update products
-set investigating = true
-where asin = $1
+set investigating = true,
+looked_at = false
+where id = $1

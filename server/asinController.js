@@ -53,11 +53,12 @@ module.exports = {
   },  
 
   markAsInvestigating: function(req, res){
+    console.log('hit')
     var db = app.get('db');
 
-    let { asin } = req.body;
+    let { id } = req.body;
 
-    db.markAsInvestigating([asin])
+    db.markAsInvestigating([id])
     .then( done => { 
       log('Updated 1 asin as being investigated');
       return res.status(200).send({error: false, message: 'Marked 1 ASIN as being investigated'});
@@ -75,6 +76,20 @@ module.exports = {
     .then( done => { 
       log('Updated 1 asin');
       return res.status(200).send({error: false, message: 'Looked at 1 ASIN'});
+    })
+    .catch( err => {})
+
+  },  
+
+  markAsFreshUrl: function(req, res){
+    var db = app.get('db');
+
+    let { id } = req.body;
+
+    db.markAsFreshUrl([id])
+    .then( done => { 
+      log('Updated 1 asin');
+      return res.status(200).send({error: false, message: 'Reset 1 ASIN to original state'});
     })
     .catch( err => {})
 
