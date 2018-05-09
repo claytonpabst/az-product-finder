@@ -27,25 +27,22 @@ massive(config.connection)
 app.use(express.static(__dirname + './../build'))
 
 var userController = require("./userController.js");
-
-app.get('/api/isLoggedIn', userController.isLoggedIn);
-app.get('/api/logOut', userController.logOut);
-app.post('/api/logIn', userController.logIn);
-app.post('/api/createUser', userController.createUser);
-
-
-/*********************** Instagram stuff *********************************/
+  app.get('/api/isLoggedIn', userController.isLoggedIn);
+  app.get('/api/logOut', userController.logOut);
+  app.post('/api/logIn', userController.logIn);
+  app.post('/api/createUser', userController.createUser);
 
 var amazonController = require("./amazonController.js");
+  app.post('/api/launchAZ', amazonController.findProducts);
+  app.post('/api/closeBrowser', amazonController.closeBrowser);
 
-app.get('/api/getUrls', amazonController.getUrls);
-app.get('/api/getInvestigatingList', amazonController.getInvestigatingList);
-app.post('/api/launchAZ', amazonController.findProducts);
-app.post('/api/closeBrowser', amazonController.closeBrowser);
-app.post('/api/markAsInvestigating', amazonController.markAsInvestigating);
-app.post('/api/markOneUrl', amazonController.markOneUrl);
-app.post('/api/markAll20', amazonController.markAll20);
-
+var asinController = require("./asinController.js");
+  app.get('/api/getUrls', asinController.getUrls);  
+  app.get('/api/getInvestigatingList', asinController.getInvestigatingList);
+  app.post('/api/markAsInvestigating', asinController.markAsInvestigating);
+  app.post('/api/markOneUrl', asinController.markOneUrl);
+  app.post('/api/markAsinForRecheck', asinController.markAsinForRecheck);
+  app.post('/api/markAll20', asinController.markAll20);
 
 
 app.listen(config.port, console.log("you are now connected on " + config.port));
