@@ -12,11 +12,15 @@ class Dashboard extends Component {
             categoryInput: '',
             searchInput: '',
             urls: [{}],
+            investigating: [{}],
+            showInvestigatingList: false,
             message: '',
         }
 
         this.getUrls = this.getUrls.bind(this);
+        this.getInvestigatingList = this.getInvestigatingList.bind(this);
         this.launchAZ = this.launchAZ.bind(this);
+        this.toggleInvestigatingList = this.toggleInvestigatingList.bind(this);
         this.markAsInvestigating = this.markAsInvestigating.bind(this);
         this.markOneUrl = this.markOneUrl.bind(this);
         this.markAll20 = this.markAll20.bind(this);
@@ -24,6 +28,7 @@ class Dashboard extends Component {
 
     componentDidMount() {
         this.getUrls();
+        this.getInvestigatingList();
     }
 
     getUrls(){
@@ -36,6 +41,17 @@ class Dashboard extends Component {
             })
         })
         .catch( err => console.log(err) );
+    }
+
+    getInvestigatingList(){
+        axios.get('/api/getInvestigatingList')
+        .then( res => {
+            console.log(res);
+            this.setState({
+                investigating: res.data
+            })
+        })
+        .catch(err=>{});
     }
 
     launchAZ(){
@@ -52,6 +68,12 @@ class Dashboard extends Component {
             .catch( err => console.log(err));
     }
 
+    toggleInvestigatingList(){
+        this.setState({
+            showInvestigatingList: !this.state.showInvestigatingList
+        })
+    }
+
     closeBrowser(){
         axios.post('/api/closeBrowser')
             .then(res => {
@@ -64,7 +86,7 @@ class Dashboard extends Component {
         if (this.state.urls.length === 0){
             return this.getUrls();
         }
-        
+
         let {urls} = this.state;
         let asin = urls[i].asin;
 
@@ -86,13 +108,15 @@ class Dashboard extends Component {
         .catch(err => {});
     }
 
-    markOneUrl(i){
+    // Gets the asin from which ever list is showing (new asins or investigating)
+    // and marks it as looked at
+    markOneUrl(i, whichList){
         if (this.state.urls.length === 0){
             return this.getUrls();
         }
 
-        let {urls} = this.state;
-        let asin = urls[i].asin;
+        let arr = this.state[whichList];
+        let asin = arr[i].asin;
 
         axios.post('/api/markOneUrl', {asin})
         .then( res => {
@@ -104,9 +128,12 @@ class Dashboard extends Component {
                 message = res.data.message;
             }
 
-            urls.splice(i, 1);
+            arr.splice(i, 1);
 
-            this.setState({urls, message})
+            this.setState({
+                [whichList]: arr, 
+                message: message
+            })
         })
         .catch(err => {});
     }
@@ -200,28 +227,49 @@ class Dashboard extends Component {
                     <button onClick={this.launchAZ}> Launch Amazon </button>
                     <button onClick={this.closeBrowser}> Close Browser </button>
                 </div>
-                <div className='asinList'>
 
-                    <p className='message' >{this.state.message}</p>
+                <button onClick={this.toggleInvestigatingList} >
+                    { this.state.showInvestigatingList ? 'Show New ASINS' : 'Show Investigating'}
+                </button>
 
-                    {
-                        this.state.urls.map( (item, i) => {
-                            let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
-                            let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
-                            return <div className='url' key={i}>
-                                <a href={ productSellers } target='_blank' >{item.asin}</a>
-                                <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
-                                <button className='investigatingBtn' onClick={() => this.markAsInvestigating(i)} >Mark as INVESTIGATING</button>
-                                <button className='removeBtn' onClick={() => this.markOneUrl(i)} >REMOVE (Mark as looked at)</button>
-                            </div>
-                        })
-                    }
+                { !this.state.showInvestigatingList && (
+                    <div className='asinList'>
 
-                    <button onClick={this.markAll20} >
-                        {numAsins > 0 ? `Mark all ${numAsins} as 'looked_at'` : 'Get New Urls'}
-                    </button>
+                        <p className='message' >{this.state.message}</p>
 
-                </div>
+                        {
+                            this.state.urls.map( (item, i) => {
+                                let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
+                                let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
+                                return <div className='url' key={i}>
+                                    <a href={ productSellers } target='_blank' >{item.asin}</a>
+                                    <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
+                                    <button className='investigatingBtn' onClick={() => this.markAsInvestigating(i)} >Mark as INVESTIGATING</button>
+                                    <button className='removeBtn' onClick={() => this.markOneUrl(i, 'urls')} >REMOVE (Mark as looked at)</button>
+                                </div>
+                            })
+                        }
+
+                        <button onClick={this.markAll20} >
+                            {numAsins > 0 ? `Mark all ${numAsins} as 'looked_at'` : 'Get New Urls'}
+                        </button>
+
+                    </div>
+                )}
+
+                { this.state.showInvestigatingList && (
+                    <div className='investigatingList'>
+                        { 
+                            this.state.investigating.map( (item, i) => {
+                                return <div className='' key={i}>
+                                    <p>ASIN: {item.asin}</p>
+                                    <button onClick={() => this.markOneUrl(i, 'investigating')}>Mark as looked at</button>
+                                </div>
+                            })
+                        }
+                    </div>
+                )}
+
             </section>
         );
     }

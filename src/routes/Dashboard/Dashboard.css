@@ -1,10 +1,13 @@
 
+.home_wrapper{
+    padding-bottom: 50px;
+    border-bottom: 1px solid black;
+}
+
 .asinList{
     width: 40%;
     min-width: 300px;
     min-height: 300px;
-    border-top: 1px solid black;
-    margin-top: 50px;
     display: block;
     padding: 50px 10px;
 }

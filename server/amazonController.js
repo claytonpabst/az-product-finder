@@ -212,6 +212,18 @@ module.exports = {
 
   },
 
+  getInvestigatingList: (req, res) => {
+    var db = app.get('db');
+
+    db.getInvestigatingList()
+    .then( list => {
+      log(list);
+      return res.status(200).send(list);
+    })
+    .catch( err => log(err) )
+
+  },
+
   closeBrowser: async function(req, res){
     await browser.close();
     browser = null;
