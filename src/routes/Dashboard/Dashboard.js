@@ -261,8 +261,12 @@ class Dashboard extends Component {
                     <div className='investigatingList'>
                         { 
                             this.state.investigating.map( (item, i) => {
-                                return <div className='' key={i}>
-                                    <p>ASIN: {item.asin}</p>
+
+                                let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
+                                let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
+
+                                return <div className='investigatingListItem' key={i}>
+                                    <p>ASIN: <span><a href={ productSellers } target='_blank' > {item.asin} </a></span></p>
                                     <button onClick={() => this.markOneUrl(i, 'investigating')}>Mark as looked at</button>
                                 </div>
                             })
