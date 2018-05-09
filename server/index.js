@@ -27,21 +27,21 @@ massive(config.connection)
 app.use(express.static(__dirname + './../build'))
 
 var userController = require("./userController.js");
-
   app.get('/api/isLoggedIn', userController.isLoggedIn);
   app.get('/api/logOut', userController.logOut);
   app.post('/api/logIn', userController.logIn);
   app.post('/api/createUser', userController.createUser);
 
 var amazonController = require("./amazonController.js");
-
   app.post('/api/launchAZ', amazonController.findProducts);
   app.post('/api/closeBrowser', amazonController.closeBrowser);
-  
+
 var asinController = require("./asinController.js");
-  
   app.get('/api/getUrls', asinController.getUrls);  
+  app.get('/api/getInvestigatingList', asinController.getInvestigatingList);
+  app.post('/api/markAsInvestigating', asinController.markAsInvestigating);
   app.post('/api/markOneUrl', asinController.markOneUrl);
+  app.post('/api/markAsFreshUrl', asinController.markAsFreshUrl);
   app.post('/api/markAsinForRecheck', asinController.markAsinForRecheck);
   app.post('/api/markAll20', asinController.markAll20);
 

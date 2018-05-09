@@ -12,17 +12,23 @@ class Dashboard extends Component {
             categoryInput: '',
             searchInput: '',
             urls: [{}],
+            investigating: [{}],
+            showInvestigatingList: false,
             message: '',
         }
 
         this.getUrls = this.getUrls.bind(this);
+        this.getInvestigatingList = this.getInvestigatingList.bind(this);
         this.launchAZ = this.launchAZ.bind(this);
+        this.toggleInvestigatingList = this.toggleInvestigatingList.bind(this);
+        this.markAsInvestigating = this.markAsInvestigating.bind(this);
         this.markOneUrl = this.markOneUrl.bind(this);
         this.markAll20 = this.markAll20.bind(this);
     }
 
     componentDidMount() {
         this.getUrls();
+        this.getInvestigatingList();
     }
 
     getUrls(){
@@ -35,6 +41,17 @@ class Dashboard extends Component {
             })
         })
         .catch( err => console.log(err) );
+    }
+
+    getInvestigatingList(){
+        axios.get('/api/getInvestigatingList')
+        .then( res => {
+            console.log(res);
+            this.setState({
+                investigating: res.data
+            })
+        })
+        .catch(err=>{});
     }
 
     launchAZ(){
@@ -51,6 +68,13 @@ class Dashboard extends Component {
             .catch( err => console.log(err));
     }
 
+    toggleInvestigatingList(){
+        this.setState({
+            showInvestigatingList: !this.state.showInvestigatingList,
+            message: '',
+        })
+    }
+
     closeBrowser(){
         axios.post('/api/closeBrowser')
             .then(res => {
@@ -59,12 +83,39 @@ class Dashboard extends Component {
             .catch( err => console.log(err));
     }
 
-    markOneUrl(id){
+    markAsInvestigating(id, i){
+        if (this.state.urls.length === 0){
+            return this.getUrls();
+        }
 
-        let urls = this.state.urls
+        let {urls} = this.state;
+
+        axios.post('/api/markAsInvestigating', {id})
+        .then( res => {
+            let message;
+
+            if (!res.data || !res.data.message){
+                message = 'Error, please try again';
+            }else{
+                message = res.data.message;
+            }
+
+            urls.splice(i, 1);
+
+            this.setState({urls, message});
+        })
+        .catch(err => {});
+    }
+
+    // Gets the asin from which ever list is showing (new asins or investigating)
+    // and marks it as looked at
+    markOneUrl(id, whichList){
+
+        let urls = this.state[whichList]
 
         axios.post('/api/markOneUrl', {id})
         .then( res => {
+            console.log(res);
             let message;
 
             if (!res.data || !res.data.message){
@@ -78,9 +129,36 @@ class Dashboard extends Component {
                         urls[i].looked_at = true;
                     }    
                 }
-            }       
+            }
 
-            // urls.splice(i, 1);
+            this.setState({ 
+                [whichList]: urls, 
+                message 
+            })
+        })
+    }
+
+    markAsFreshUrl(id){
+        let urls = this.state.urls;
+
+        axios.post('/api/markAsFreshUrl', {id})
+        .then( res => {
+            console.log(res);
+            let message;
+
+            if (!res.data || !res.data.message){
+                message = 'Error, please try again';
+            }else{
+                message = res.data.message;
+            }
+            if (res.status === 200){
+                for(let i=0; i<urls.length; i++){
+                    if(urls[i].id === id){
+                        urls[i].looked_at = false;
+                        urls[i].needs_recheck = false;
+                    }    
+                }
+            }
 
             this.setState({ urls, message })
         })
@@ -100,6 +178,7 @@ class Dashboard extends Component {
 
             this.setState({ message })
         })
+        .catch(err => {});
     }
 
     // Marks all remaining urls as 'looked at' then gets new URLs. If no URLs remain, it just gets new urls
@@ -190,33 +269,62 @@ class Dashboard extends Component {
                     <button onClick={this.launchAZ}> Launch Amazon </button>
                     <button onClick={this.closeBrowser}> Close Browser </button>
                 </div>
-                <div className='asinList'>
 
-                    <p className='message' >{this.state.message}</p>
+                <button onClick={this.toggleInvestigatingList} >
+                    { this.state.showInvestigatingList ? 'Show New ASINS' : 'Show Investigating'}
+                </button>
 
-                    {
-                        this.state.urls.map( (item, i) => {
-                            console.log(item);
-                            let href = `https://www.amazon.com/abc/dp/${item.asin}`;
-                            return <div className='url' key={i}>
-                                <a href={href} target='_blank' >{item.asin}</a>
-                                <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
-                                <p>Manufacturer: {item.manufacturer || 'No manufacturer obtained'}</p>
-                                {
-                                    !item.looked_at ?
-                                    <button onClick={() => this.markOneUrl(item.id)} >Mark this URL as looked at</button> :
-                                    <button onClick={() => this.markOneUrl(item.id)} >Undo</button>
-                                }
-                                <button onClick={() => {this.markAsinForRecheck(item.id); this.markOneUrl(item.id) }} >Mark this URL For Recheck</button>
-                            </div>
-                        })
-                    }
+                <p className='message' >{this.state.message}</p>
 
-                    <button onClick={this.markAll20} >
-                        {numAsins > 0 ? `Mark all ${numAsins} as 'looked_at'` : 'Get New Urls'}
-                    </button>
+                { !this.state.showInvestigatingList && (
+                    <div className='asinList'>
+                        {
+                            this.state.urls.map( (item, i) => {
+                                console.log(item);
+                                
+                                let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
+                                let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
 
-                </div>
+                                return <div className='url' key={i}>
+                                    <a href={ productSellers } target='_blank' >{item.asin}</a>
+                                    <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
+                                    <p>Manufacturer: {item.manufacturer || 'No manufacturer obtained'}</p>
+                                    <button className='investigatingBtn' onClick={() => this.markAsInvestigating(item.id, i)} >Mark as INVESTIGATING</button>
+                                    {
+                                        !item.looked_at ? 
+                                        <button className='removeBtn' onClick={() => this.markOneUrl(item.id, 'urls')} >REMOVE (Mark as looked at)</button> :
+                                        <button onClick={() => this.markAsFreshUrl(item.id)} >Undo</button>
+                                    }
+                                    <button onClick={() => {this.markAsinForRecheck(item.id); this.markOneUrl(item.id, 'urls') }} >Mark For Recheck</button>
+                                </div>
+                            })
+                        }
+
+
+                        <button onClick={this.markAll20} >
+                            {numAsins > 0 ? `Mark all ${numAsins} as 'looked_at'` : 'Get New Urls'}
+                        </button>
+
+                    </div>
+                )}
+
+                { this.state.showInvestigatingList && (
+                    <div className='investigatingList'>
+                        { 
+                            this.state.investigating.map( (item, i) => {
+
+                                let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
+                                let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
+
+                                return <div className='investigatingListItem' key={i}>
+                                    <p>ASIN: <span><a href={ productSellers } target='_blank' > {item.asin} </a></span></p>
+                                    <button onClick={() => this.markOneUrl(item.id, 'investigating')}>Mark as looked at</button>
+                                </div>
+                            })
+                        }
+                    </div>
+                )}
+
             </section>
         );
     }

@@ -1,10 +1,13 @@
 
+.home_wrapper{
+    padding-bottom: 50px;
+    border-bottom: 1px solid black;
+}
+
 .asinList{
     width: 40%;
     min-width: 300px;
     min-height: 300px;
-    border-top: 1px solid black;
-    margin-top: 50px;
     display: block;
     padding: 50px 10px;
 }
@@ -21,6 +24,33 @@
     justify-content: left;
 }
 
-.url a{
+.url a, .url p{
+    margin-right: 10px;
+}
+
+.investigatingBtn{
+    background: #cfc;
+    color: green;
+    border: 1px solid black;
+    margin-right: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.removeBtn{
+    background: rgb(255, 178, 178);
+    color: red;
+    border: 1px solid darkred;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.investigatingListItem{
+    display: flex;
+    justify-content: left;
+    margin: 8px 0px;
+}
+
+.investigatingListItem p{
     margin-right: 10px;
 }

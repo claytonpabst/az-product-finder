@@ -3,9 +3,11 @@ var config = require('./config.js');
 
 const puppeteer = require('puppeteer');
 
-// change debug to true to see the console.log messages
-let debug = true; 
 let browser = null;
+
+// Settings
+let debug = true; 
+let headless = true;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
@@ -129,11 +131,35 @@ async function checkIfAmazonSellsProduct(page){
       let pattern = new RegExp(text, 'i');
       amazonPatterns.push(pattern);
 
+      // Check if manufacture has spaces, if so remove them and add it as another pattern
+      let noSpacesText = text.replace(' ', '');
+      let noSpacesPattern = new RegExp(noSpacesText, 'i');
+      amazonPatterns.push(noSpacesPattern);
+
       for (let i = 0; i < amazonPatterns.length; i++){
         if (sellersHtml.match(amazonPatterns[i])){
           console.log('Found Amazon Pattern');
           return true;
         }
+      }
+
+      // Attempt to get a list of all the sellers here
+      let sellersArr = [];
+      if (document.querySelectorAll('#olpOfferList .olpOffer')){
+        let sellersList = document.querySelectorAll('#olpOfferList .olpOffer');
+        for (let i = 0; i < sellersList.length; i++){
+          let name;
+          try{
+            name = sellersList[i].children[3].children[0].innerText;
+          }
+          catch(e){}
+          if (name) { sellersArr.push(name.toLowerCase()); }
+        }
+      }
+
+      // If there's only 2 sellers and they are both the same seller, we don't want to list it
+      if (sellersArr.length === 2 && sellersArr[0] === sellersArr[1]){
+        return true;
       }
       
       return false;
@@ -174,8 +200,6 @@ async function getNumberOfPagesToSearch(page){
 
 module.exports = {
 
-
-
   closeBrowser: async function(req, res){
     await browser.close();
     browser = null;
@@ -194,7 +218,7 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless: false});
+        browser = await puppeteer.launch({headless: headless});
       }
       const page = await browser.newPage(); 
       
@@ -258,7 +282,7 @@ module.exports = {
                 }
 
                 if (!duplicate){
-                  log('Pushing new ASIN to DB');
+                  log('Pushing new ASIN to DB: ' + newAsin);
                   db.addAsin([newAsin, ranking])
                   .then( success => {
                     // return res.status(200).send({successful: true, message: '.catch error', error: err});
@@ -286,9 +310,5 @@ module.exports = {
     }
     catch(e){ log("Error in the main findProducts function"); }
   },
-
-
-
-  
 
 }
