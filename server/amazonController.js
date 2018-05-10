@@ -16,6 +16,51 @@ function log(content){
   }
 }
 
+function doesSellerMakeThisProduct(manufacturer, sellers){
+  try{
+    for(let i=0; i<sellers.length; i++){
+  
+      if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  sellers[i].replace(/ |-/gi, '').toLowerCase()){
+        log("Seller Is Manufacturer: True");
+        return true;
+      };
+      if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(sellers[i].replace(/ |-/gi, '').toLowerCase())){
+        log("Seller Is Manufacturer: True");
+        return true;
+      };
+      if(sellers[i].replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
+        log("Seller Is Manufacturer: True");
+        return true;
+      };
+  
+      manufacturerWords = manufacturer.split(' ');
+      let numberOfSimilaritiesPossible = manufacturerWords.length;
+      let numberOfSimilaritiesFound = 0;
+  
+      for(let j=0; j<manufacturerWords.length; j++){
+  
+        if(seller[i].replace(/ |-/gi, '').toLowerCase().includes(manufacturerWords[j].toLowerCase())){
+          numberOfSimilaritiesFound++;
+        };
+  
+      };
+  
+      if( (numberOfSimilaritiesFound > 0 && numberOfSimilaritiesPossible <= 2) || numberOfSimilaritiesFound > 1 ){
+        log("Seller Is Manufacturer: True");
+        return true;
+      };
+    };
+  
+    return false;
+
+  }
+  catch(e){
+    let error = JSON.stringify(e);
+    log('Clayton Says, "Error with doesSellerMakeThisProduct() ....... Error: ' + error + '"');
+  }
+
+}
+
 async function getAsinsOnPage(page){
   try{
     log('Getting ASINs for the products on this page');
@@ -110,7 +155,7 @@ async function checkIfAmazonSellsProduct(page){
     let sellersBox = '#olpOfferList';
     await page.waitForSelector(sellersBox);
     
-    let amazonSellsThisProduct = await page.evaluate((sellersBox) => {
+    let amazonSellsThisProduct = await page.evaluate((sellersBox, doesSellerMakeThisProduct) => {
         
       if (!document.querySelector(sellersBox)){
         console.log('\n**ERROR: Sellers box selector doesn\'t exist, need new selector for this page**\n');
@@ -136,13 +181,14 @@ async function checkIfAmazonSellsProduct(page){
       let noSpacesPattern = new RegExp(noSpacesText, 'i');
       amazonPatterns.push(noSpacesPattern);
 
+      
       for (let i = 0; i < amazonPatterns.length; i++){
         if (sellersHtml.match(amazonPatterns[i])){
           console.log('Found Amazon Pattern');
           return true;
         }
       }
-
+      
       // Attempt to get a list of all the sellers here
       let sellersArr = [];
       if (document.querySelectorAll('#olpOfferList .olpOffer')){
@@ -157,19 +203,26 @@ async function checkIfAmazonSellsProduct(page){
         }
       }
 
+      
       // If there's only 2 sellers and they are both the same seller, we don't want to list it
       if (sellersArr.length === 2 && sellersArr[0] === sellersArr[1]){
         return true;
       }
       
+      if(doesSellerMakeThisProduct(text, sellersArr)){
+        return true;
+      } else {
+        log("Seller Is Manufacturer: False")
+      }
+
       return false;
 
-    }, sellersBox);
+    }, sellersBox, doesSellerMakeThisProduct(manufacturer, sellers));
 
     return amazonSellsThisProduct;
 
   }
-  catch(e){ log("Error with checkIfAmazonSellsProduct func"); }
+  catch(e){ log(e); }
 }
 
 async function getNextPageUrl(page){
