@@ -19,7 +19,7 @@ app.use(session({
     }
 }))
 
-massive(config.dev)
+massive(config[config.env])
 .then( db => {
   app.set('db', db);
 }).catch(err=>{});
