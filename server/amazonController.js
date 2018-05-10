@@ -16,8 +16,37 @@ function log(content){
   }
 }
 
-function doesSellerMakeThisProduct(manufacturer, sellers){
-  try{
+async function doesSellerMakeThisProduct(page){
+  let manufacturer = await page.evaluate(() => {
+    let manufacturerElement = document.getElementById('olpProductByline');
+    let text = manufacturerElement.innerText.trim();
+    text = text.replace('by ', '');
+    return text;
+  });
+  let sellers = await page.evaluate(() => {
+    let sellersArr = [];
+    if (document.querySelectorAll('#olpOfferList .olpOffer')){
+      let sellersList = document.querySelectorAll('#olpOfferList .olpOffer');
+      for (let i = 0; i < sellersList.length; i++){
+        let name;
+        try{
+          name = sellersList[i].children[3].children[0].innerText;
+        }
+        catch(e){}
+        if (name) { sellersArr.push(name.toLowerCase()); }
+      }
+    }
+    return sellersArr;
+  });
+
+  console.log(manufacturer + "," + sellers)
+
+  if ((sellers.length === 2 && sellers[0] === sellers[1]) || sellers.length === 1){
+    log("Not Enough Sellers");
+    return true;
+  }
+
+  // try{
     for(let i=0; i<sellers.length; i++){
   
       if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  sellers[i].replace(/ |-/gi, '').toLowerCase()){
@@ -39,25 +68,26 @@ function doesSellerMakeThisProduct(manufacturer, sellers){
   
       for(let j=0; j<manufacturerWords.length; j++){
   
-        if(seller[i].replace(/ |-/gi, '').toLowerCase().includes(manufacturerWords[j].toLowerCase())){
+        if(sellers[i].replace(/ |-/gi, '').toLowerCase().includes(manufacturerWords[j].toLowerCase())){
           numberOfSimilaritiesFound++;
         };
   
       };
   
       if( (numberOfSimilaritiesFound > 0 && numberOfSimilaritiesPossible <= 2) || numberOfSimilaritiesFound > 1 ){
-        log("Seller Is Manufacturer: True");
+        log("Too many word matches");
         return true;
       };
     };
-  
+    
+    log("Seller Is Manufacturer: False");
     return false;
 
-  }
-  catch(e){
-    let error = JSON.stringify(e);
-    log('Clayton Says, "Error with doesSellerMakeThisProduct() ....... Error: ' + error + '"');
-  }
+  // }
+  // catch(e){
+  //   let error = JSON.stringify(e);
+  //   log('Clayton Says, "Error with doesSellerMakeThisProduct() ....... Error: ' + error + '"');
+  // }
 
 }
 
@@ -98,8 +128,6 @@ async function getAsinsOnPage(page){
   
     }, listSelector);
 
-    log(asinList);
-
     return asinList;
   }
   catch(e){ log("Error with getAsinsOnPage func"); }
@@ -111,9 +139,7 @@ async function getProductRanking(page){
     log('Getting Product Ranking');
 
     let buybox = '#buybox';
-    // page.waitForSelector(buybox);
     
-
     let ranking = await page.evaluate((buybox) => {
       timesChecked = 0;
       function waitForS(selector){
@@ -150,15 +176,13 @@ async function getProductRanking(page){
 
 async function checkIfAmazonSellsProduct(page){
   try{
-    log('checking sellers...');
 
     let sellersBox = '#olpOfferList';
     await page.waitForSelector(sellersBox);
     
-    let amazonSellsThisProduct = await page.evaluate((sellersBox, doesSellerMakeThisProduct) => {
-        
+    let amazonSellsThisProduct = await page.evaluate((sellersBox) => {
+      
       if (!document.querySelector(sellersBox)){
-        console.log('\n**ERROR: Sellers box selector doesn\'t exist, need new selector for this page**\n');
         return false;
       }
 
@@ -168,57 +192,18 @@ async function checkIfAmazonSellsProduct(page){
         /alt="amazon\.com"/,
         /src="https:\/\/images-na\.ssl-images-amazon\.com\/images\/I\/01dXM-J1oeL\.gif/,
       ];
-
-      // Add manufacturer to the patterns to avoid as well
-      let manufacturerElement = document.getElementById('olpProductByline');
-      let text = manufacturerElement.innerText.trim();
-      text = text.replace('by ', '');
-      let pattern = new RegExp(text, 'i');
-      amazonPatterns.push(pattern);
-
-      // Check if manufacture has spaces, if so remove them and add it as another pattern
-      let noSpacesText = text.replace(' ', '');
-      let noSpacesPattern = new RegExp(noSpacesText, 'i');
-      amazonPatterns.push(noSpacesPattern);
-
       
       for (let i = 0; i < amazonPatterns.length; i++){
         if (sellersHtml.match(amazonPatterns[i])){
-          console.log('Found Amazon Pattern');
           return true;
         }
-      }
-      
-      // Attempt to get a list of all the sellers here
-      let sellersArr = [];
-      if (document.querySelectorAll('#olpOfferList .olpOffer')){
-        let sellersList = document.querySelectorAll('#olpOfferList .olpOffer');
-        for (let i = 0; i < sellersList.length; i++){
-          let name;
-          try{
-            name = sellersList[i].children[3].children[0].innerText;
-          }
-          catch(e){}
-          if (name) { sellersArr.push(name.toLowerCase()); }
-        }
-      }
-
-      
-      // If there's only 2 sellers and they are both the same seller, we don't want to list it
-      if (sellersArr.length === 2 && sellersArr[0] === sellersArr[1]){
-        return true;
-      }
-      
-      if(doesSellerMakeThisProduct(text, sellersArr)){
-        return true;
-      } else {
-        log("Seller Is Manufacturer: False")
       }
 
       return false;
 
-    }, sellersBox, doesSellerMakeThisProduct(manufacturer, sellers));
+    }, sellersBox);
 
+    log('Amazon sells: ' + amazonSellsThisProduct);
     return amazonSellsThisProduct;
 
   }
@@ -229,11 +214,9 @@ async function getNextPageUrl(page){
   try{
     log('Getting next page URL');
 
-    let nextLink = '#pagnNextLink';
-
-    let newUrl = await page.evaluate((nextLink) => {
+    let newUrl = await page.evaluate(() => {
       return document.getElementById('pagnNextLink').href;
-    }, nextLink);
+    });
 
     return newUrl;
   }
@@ -242,10 +225,9 @@ async function getNextPageUrl(page){
 
 async function getNumberOfPagesToSearch(page){
   try{
-    let className = "pagnDisabled";
-    let numberOfPages = await page.evaluate((className) => {
+    let numberOfPages = await page.evaluate(() => {
       return parseInt(document.getElementsByClassName("pagnDisabled")[0].innerText)
-    }, className);
+    });
     return numberOfPages;
   }
   catch(e){ log("Error with getNumberOfPagesToSearch func"); }
@@ -285,7 +267,6 @@ module.exports = {
         log("Searching Page " + pageNum + " of " + pagesToSearch);
           
         let asinList = await getAsinsOnPage(page);
-        log(asinList);
 
         // Get the url for future pages
         let newUrl = await getNextPageUrl(page);
@@ -304,7 +285,7 @@ module.exports = {
           await page.goto(productDetailsPage);
           let ranking = await getProductRanking(page);
           ranking = ranking ? ranking : "100000000000";
-          ranking = ranking.replace(",", "")
+          ranking = ranking.replace(/,/g, "")
           ranking = parseInt(ranking, 10);
           // log(ranking);
     
@@ -313,10 +294,14 @@ module.exports = {
 
             // Here we can see who sells each product. Amazon should be top of the list if they sell it
             await page.goto(productSellersPage);
+
             let amazonSellsThisProduct = await checkIfAmazonSellsProduct(page);
-            log('Amazon sells: ' + amazonSellsThisProduct);
-      
-            if (!amazonSellsThisProduct){
+            let doesSellerMakeThisProductReturn = null;
+            if(!amazonSellsThisProduct){
+              doesSellerMakeThisProductReturn = await doesSellerMakeThisProduct(page);
+            }
+
+            if (!amazonSellsThisProduct && !doesSellerMakeThisProductReturn){
               // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
               log('Getting ASINS from DB');
               
@@ -361,7 +346,10 @@ module.exports = {
         pageNum++;
       }
     }
-    catch(e){ log("Error in the main findProducts function"); }
+    catch(e){ 
+      let error = JSON.stringify(e);
+      log(e); 
+    }
   },
 
 }
