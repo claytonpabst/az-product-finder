@@ -3,6 +3,13 @@ import axios from "axios";
 import React, { Component } from 'react';
 import './Dashboard.css'
 
+// log function for debugging on front end
+let debug = false;
+function log(content){
+    if (debug){
+      console.log(content);
+    }
+}
 
 class Dashboard extends Component {
 
@@ -35,19 +42,19 @@ class Dashboard extends Component {
     getUrls(){
         axios.get('/api/getUrls')
         .then( res => {
-            console.log(res);
+            log(res);
             this.setState({
                 urls: res.data,
                 message: 'Here are 20 fresh URLs'
             })
         })
-        .catch( err => console.log(err) );
+        .catch( err => log(err) );
     }
 
     getInvestigatingList(){
         axios.get('/api/getInvestigatingList')
         .then( res => {
-            console.log(res);
+            log(res);
             this.setState({
                 investigating: res.data
             })
@@ -68,9 +75,9 @@ class Dashboard extends Component {
                 if(res.data.message){
                     alert(res.data.message);
                 };
-                console.log(res);
+                log(res);
             })
-            .catch( err => console.log(err));
+            .catch( err => log(err));
     }
 
     toggleInvestigatingList(){
@@ -83,9 +90,9 @@ class Dashboard extends Component {
     closeBrowser(){
         axios.post('/api/closeBrowser')
             .then(res => {
-                console.log(res);
+                log(res);
             })
-            .catch( err => console.log(err));
+            .catch( err => log(err));
     }
 
     markAsInvestigating(id, i){
@@ -128,7 +135,7 @@ class Dashboard extends Component {
 
         axios.post('/api/markOneUrl', {id})
         .then( res => {
-            console.log(res);
+            log(res);
             let message;
 
             if (!res.data || !res.data.message){
@@ -156,7 +163,7 @@ class Dashboard extends Component {
 
         axios.post('/api/markAsFreshUrl', {id})
         .then( res => {
-            console.log(res);
+            log(res);
             let message;
 
             if (!res.data || !res.data.message){
@@ -286,7 +293,7 @@ class Dashboard extends Component {
                     <div className='asinList'>
                         {
                             this.state.urls.map( (item, i) => {
-                                console.log(item);
+                                log(item);
                                 
                                 let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
                                 let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
