@@ -43,7 +43,6 @@ var asinController = require("./asinController.js");
   app.post('/api/markOneUrl', asinController.markOneUrl);
   app.post('/api/markAsFreshUrl', asinController.markAsFreshUrl);
   app.post('/api/markAsinForRecheck', asinController.markAsinForRecheck);
-  app.post('/api/markAll20', asinController.markAll20);
 
 
 app.listen(config.port, console.log("you are now connected on " + config.port));

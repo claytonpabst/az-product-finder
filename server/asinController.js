@@ -95,27 +95,4 @@ module.exports = {
 
   },  
 
-  markAll20: function(req, res){
-    var db = app.get('db');
-
-    let { idList } = req.body;
-    let numUpdated = 0;
-
-    for (let i = 0; i < idList.length; i++){
-      db.markAsinAsLookedAt([idList[i]])
-      .then( done => { 
-
-        numUpdated++;
-        log('Updated 1 asin');
-
-        if (numUpdated === asins.length){
-          return res.status(200).send({error: false, message: 'Updated all 20 ASINS'});
-        }
-
-      })
-      .catch( err => {})
-    }
-  },
-
-
 }
