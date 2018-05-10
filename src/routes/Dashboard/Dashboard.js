@@ -25,7 +25,6 @@ class Dashboard extends Component {
         this.toggleInvestigatingList = this.toggleInvestigatingList.bind(this);
         this.markAsInvestigating = this.markAsInvestigating.bind(this);
         this.markOneUrl = this.markOneUrl.bind(this);
-        this.markAll20 = this.markAll20.bind(this);
     }
 
     componentDidMount() {
@@ -106,9 +105,17 @@ class Dashboard extends Component {
                 message = res.data.message;
             }
 
-            urls.splice(i, 1);
+            let asinInfo = urls.splice(i, 1)[0];
+            let {investigating} = this.state;
 
-            this.setState({urls, message});
+            // move the asin to the investigating list
+            if (investigating.length === 1 && investigating[0] === {}){
+                investigating[0] = asinInfo;
+            }else{
+                investigating.push(asinInfo);
+            }
+
+            this.setState({urls, message, investigating});
         })
         .catch(err => {});
     }
@@ -145,7 +152,7 @@ class Dashboard extends Component {
     }
 
     markAsFreshUrl(id){
-        let urls = this.state.urls;
+        let {urls, investigating} = this.state;
 
         axios.post('/api/markAsFreshUrl', {id})
         .then( res => {
@@ -158,15 +165,26 @@ class Dashboard extends Component {
                 message = res.data.message;
             }
             if (res.status === 200){
+                // if this is an asin in the urls list, mark it as not looked at
                 for(let i=0; i<urls.length; i++){
                     if(urls[i].id === id){
                         urls[i].looked_at = false;
                         urls[i].needs_recheck = false;
                     }    
                 }
+                // if this is an asin in the investigating list, mark it as not looked at,
+                // then move it back to the urls list instead
+                for(let i=0; i<investigating.length; i++){
+                    if(investigating[i].id === id){
+                        investigating[i].looked_at = false;
+                        investigating[i].needs_recheck = false;
+                        investigating[i].investigating = false;
+                        urls.push(investigating.splice(i, 1)[0]);
+                    }    
+                }
             }
 
-            this.setState({ urls, message })
+            this.setState({ urls, message, investigating })
         })
     }
 
@@ -185,30 +203,6 @@ class Dashboard extends Component {
             this.setState({ message })
         })
         .catch(err => {});
-    }
-
-    // Marks all remaining urls as 'looked at' then gets new URLs. If no URLs remain, it just gets new urls
-    markAll20(){
-        if (this.state.urls.length === 0){
-            return this.getUrls();
-        }
-
-        let idList = [];
-
-        for (let i = 0; i < this.state.urls.length; i++){
-            idList.push(this.state.urls[i].id);
-        }
-
-        axios.post('/api/markAll20', {idList})
-        .then( res => {
-            console.log(res);
-            if (res.data && !res.data.error){
-                this.setState({
-                    message: res.data.message || 'Getting new URLs'
-                })
-            }
-        })
-        .catch(err => console.log(err));
     }
 
     addToExclusion = () => {
@@ -313,9 +307,7 @@ class Dashboard extends Component {
                         }
 
 
-                        <button onClick={this.markAll20} >
-                            {numAsins > 0 ? `Mark all ${numAsins} as 'looked_at'` : 'Get New Urls'}
-                        </button>
+                        <button onClick={this.getUrls} >Get More Urls</button>
 
                     </div>
                 )}
@@ -330,7 +322,8 @@ class Dashboard extends Component {
 
                                 return <div className='investigatingListItem' key={i}>
                                     <p>ASIN: <span><a href={ productSellers } target='_blank' > {item.asin} </a></span></p>
-                                    <button onClick={() => this.markOneUrl(item.id, 'investigating')}>Mark as looked at</button>
+                                    <button onClick={() => this.markAsFreshUrl(item.id)} >Move back to fresh URLs list</button>
+                                    <button className='removeBtn' onClick={() => this.markOneUrl(item.id, 'investigating')}>Mark as looked at</button>
                                 </div>
                             })
                         }
