@@ -15,6 +15,8 @@ class Dashboard extends Component {
             investigating: [{}],
             showInvestigatingList: false,
             message: '',
+            addToExclusionInput:'',
+            exclusion:[],
         }
 
         this.getUrls = this.getUrls.bind(this);
@@ -58,11 +60,15 @@ class Dashboard extends Component {
         let {categoryInput, searchInput} = this.state;
 
         if (!categoryInput || !searchInput){
+            alert("Include both category and search term to begin Amazon product query.")
             return;
         }
 
         axios.post('/api/launchAZ', { category: categoryInput, search: searchInput })
             .then(res => {
+                if(res.data.message){
+                    alert(res.data.message);
+                };
                 console.log(res);
             })
             .catch( err => console.log(err));
@@ -205,6 +211,12 @@ class Dashboard extends Component {
         .catch(err => console.log(err));
     }
 
+    addToExclusion = () => {
+        let {exclusion} = this.state;
+        exclusion.push(this.state.addToExclusionInput);
+        this.setState({exclusion});
+    }
+
     render() {
         let numAsins = this.state.urls.length;
 
@@ -324,6 +336,14 @@ class Dashboard extends Component {
                         }
                     </div>
                 )}
+                <div className="exclusion-wrapper">
+                    <p>{this.state.exclusion}</p>
+                    <p>Add to exclusion (Should be typed out exactly as it appears on Amazon)</p>
+                    <input onChange={(e) => this.setState({addToExclusionInput:e.target.value})}/>
+                    <button onClick={this.addToExclusion}>Submit</button>
+
+
+                </div>
 
             </section>
         );
