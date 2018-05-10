@@ -1,10 +1,8 @@
 var app = require('./index.js');
 var config = require('./config.js');
 
-let debug = true; 
-
 function log(content){
-  if (debug){
+  if (config.debug){
     console.log(content);
   }
 }
@@ -36,12 +34,11 @@ module.exports = {
   },
 
   markAsinForRecheck: function(req, res){
-
     var db = app.get('db');
 
     let { id } = req.body;
 
-    console.log(id)
+    log(id)
 
     db.markAsinForRecheck([id])
     .then( done => { 
@@ -53,7 +50,6 @@ module.exports = {
   },  
 
   markAsInvestigating: function(req, res){
-    console.log('hit')
     var db = app.get('db');
 
     let { id } = req.body;

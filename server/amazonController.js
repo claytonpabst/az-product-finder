@@ -4,14 +4,11 @@ var config = require('./config.js');
 const puppeteer = require('puppeteer');
 
 let browser = null;
-
-// Settings
-let debug = true; 
 let headless = true;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
-  if (debug){
+  if (config.debug){
     console.log(content);
   }
 }
