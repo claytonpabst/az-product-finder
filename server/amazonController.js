@@ -233,6 +233,8 @@ async function getNumberOfPagesToSearch(page){
   catch(e){ log("Error with getNumberOfPagesToSearch func"); }
 }
 
+let pageNum = 1;
+let pagesToSearch = 400;
 module.exports = {
 
   closeBrowser: async function(req, res){
@@ -244,11 +246,17 @@ module.exports = {
   },
 
   findProducts: async function(req, res){
+
+    if(browser !== null){
+      console.log("hit")
+      res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
+      return;
+    };
     
     try{
+      pageNum = 1;
+      pagesToSearch = 400;
 
-      let pageNum = 1;
-      let pagesToSearch = 400;
       const category = req.body.category;
       let searchTerm = req.body.search.split(' ').join('+');
   
@@ -337,7 +345,7 @@ module.exports = {
         }   
 
         // Go to the next page
-        if (pageNum > pagesToSearch) {
+        if (pageNum >= pagesToSearch) {
           browser.close()
           log("Browser Closed.")
           return;
