@@ -39,7 +39,8 @@ async function doesSellerMakeThisProduct(page){
     return sellersArr;
   });
 
-  console.log(manufacturer + "," + sellers)
+  log('Manufacturer: ' + manufacturer);
+  log(`Sellers: [${sellers}]`);
 
   if ((sellers.length === 2 && sellers[0] === sellers[1]) || sellers.length === 1){
     log("Not Enough Sellers");
