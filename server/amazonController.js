@@ -4,14 +4,11 @@ var config = require('./config.js');
 const puppeteer = require('puppeteer');
 
 let browser = null;
-
-// Settings
-let debug = true; 
 let headless = true;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
-  if (debug){
+  if (config.debug){
     console.log(content);
   }
 }
@@ -39,10 +36,16 @@ async function doesSellerMakeThisProduct(page){
     return sellersArr;
   });
 
-  console.log(manufacturer + "," + sellers)
+  log('Manufacturer: ' + manufacturer);
+  log(`Sellers: [${sellers}]`);
 
   if ((sellers.length === 2 && sellers[0] === sellers[1]) || sellers.length === 1){
     log("Not Enough Sellers");
+    return true;
+  }
+
+  if (manufacturer.match(/amazon/i)){
+    log('Amazon is the manufacturer');
     return true;
   }
 
@@ -103,11 +106,6 @@ async function getAsinsOnPage(page){
     const asinList = await page.evaluate((listSelector) => {
 
       let asins = [];
-
-      // this logs to the Puppeteer window console
-      console.log(listSelector); 
-      console.log(document.querySelectorAll(listSelector));
-
       let ul =  document.querySelectorAll(listSelector)[0];
       let list = ul.children || [];
 
@@ -122,8 +120,6 @@ async function getAsinsOnPage(page){
         }
       }
 
-      // console.log(asins);
-
       return asins;
   
     }, listSelector);
@@ -134,9 +130,8 @@ async function getAsinsOnPage(page){
 }
 
 async function getProductRanking(page){
-  try{
-    log(" ");        
-    log('Getting Product Ranking');
+  try{      
+    log('\nGetting Product Ranking');
 
     let buybox = '#buybox';
     
@@ -149,7 +144,6 @@ async function getProductRanking(page){
           if (document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)){
             rank = document.body.innerHTML.match(/#(\d+.*?) in .*?\(/)[1]
           }
-          console.log(rank);
     
           return rank;
 
@@ -210,19 +204,6 @@ async function checkIfAmazonSellsProduct(page){
   catch(e){ log(e); }
 }
 
-async function getNextPageUrl(page){
-  try{
-    log('Getting next page URL');
-
-    let newUrl = await page.evaluate(() => {
-      return document.getElementById('pagnNextLink').href;
-    });
-
-    return newUrl;
-  }
-  catch(e){ log("Error with getNextPageUrl func"); }
-}
-
 async function getNumberOfPagesToSearch(page){
   try{
     let numberOfPages = await page.evaluate(() => {
@@ -240,8 +221,7 @@ module.exports = {
   closeBrowser: async function(req, res){
     await browser.close();
     browser = null;
-    log(" ");
-    log("Browser Closed From Front End.");
+    log("\nBrowser Closed From Front End.");
     return;
   },
 
@@ -277,13 +257,10 @@ module.exports = {
         let asinList = await getAsinsOnPage(page);
 
         // Get the url for future pages
-        let newUrl = await getNextPageUrl(page);
+        let newUrl = await page.evaluate(() => document.getElementById('pagnNextLink').href);
         log('Next page url: ' + newUrl);
 
-        /*
-        ************** AT THIS POINT WE HAVE A LIST OF ASINS, & WE CAN GO TO EACH URL ****************** 
-        */
-
+        // At this point we have a list of ASINs for the current page, so we can check each one
         for (let i = 0; i < asinList.length; i++){
           let productDetailsPage = `https://www.amazon.com/abc/dp/${asinList[i]}`;
           let productSellersPage = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
@@ -295,7 +272,6 @@ module.exports = {
           ranking = ranking ? ranking : "100000000000";
           ranking = ranking.replace(/,/g, "")
           ranking = parseInt(ranking, 10);
-          // log(ranking);
     
           // If the ranking is good enough, make sure Amazon doesn't sell it themselves
           if (ranking && !isNaN(ranking) && ranking < 80500){
