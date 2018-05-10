@@ -47,6 +47,11 @@ async function doesSellerMakeThisProduct(page){
     return true;
   }
 
+  if (manufacturer.match(/amazon/i)){
+    log('Amazon is the manufacturer');
+    return true;
+  }
+
   // try{
     for(let i=0; i<sellers.length; i++){
   
