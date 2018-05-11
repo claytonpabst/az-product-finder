@@ -27,15 +27,15 @@ async function getManufacturer(page){
 function isExcluded(manufacturer, exclusionList){
   for(let i=0; i<exclusionList.length; i++){
   
-    if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].replace(/ |-/gi, '').toLowerCase()){
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase()){
       log("Seller Is Manufacturer: True");
       return true;
     };
-    if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].replace(/ |-/gi, '').toLowerCase())){
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase())){
       log("Seller Is Manufacturer: True");
       return true;
     };
-    if(exclusionList[i].replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
+    if(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
       log("Seller Is Manufacturer: True");
       return true;
     };
@@ -250,16 +250,19 @@ let pagesToSearch = 400;
 module.exports = {
 
   closeBrowser: async function(req, res){
-    await browser.close();
-    browser = null;
-    log("\nBrowser Closed From Front End.");
-    return res.status(200).send({message: 'Browser has been closed'});
+    if(browser !== null){
+      await browser.close();
+      browser = null;
+      log("\nBrowser Closed From Front End.");
+      return res.status(200).send({message: 'Browser has been closed'});
+    } else {
+      return res.status(200).send({message: 'Browser is already closed'});
+    }
   },
 
   findProducts: async function(req, res){
 
     if(browser !== null){
-      console.log("hit")
       res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
       return;
     }else{
@@ -275,7 +278,7 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless, args: ['--no-sandbox']});
+        browser = await puppeteer.launch({headless: true, args: ['--no-sandbox']});
       }
       const page = await browser.newPage(); 
       
@@ -366,7 +369,7 @@ module.exports = {
                       log(`${manufacturer} is in exclusion list`);
                     }
                   })
-                  .catch(err=>{});
+                  .catch(err=>{console.log(err)});
                 }else{
                   log('duplicate (ASIN already in DB): ' + newAsin);
                 }
