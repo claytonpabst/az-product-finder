@@ -3,10 +3,8 @@ import axios from "axios";
 import React, { Component } from 'react';
 import './Dashboard.css'
 
-<<<<<<< HEAD
 import PageNameHeader from '../../components/PageNameHeader/PageNameHeader.js';
 
-=======
 // log function for debugging on front end
 let debug = false;
 function log(content){
@@ -14,7 +12,6 @@ function log(content){
       console.log(content);
     }
 }
->>>>>>> master
 
 class Dashboard extends Component {
 
