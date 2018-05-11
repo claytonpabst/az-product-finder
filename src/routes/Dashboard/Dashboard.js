@@ -91,6 +91,11 @@ class Dashboard extends Component {
         axios.post('/api/closeBrowser')
             .then(res => {
                 log(res);
+                if (res.data && res.data.message){
+                    alert(res.data.message);
+                }else{
+                    alert('Unexpected error');
+                }
             })
             .catch( err => log(err));
     }

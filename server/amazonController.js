@@ -222,7 +222,7 @@ module.exports = {
     await browser.close();
     browser = null;
     log("\nBrowser Closed From Front End.");
-    return;
+    return res.status(200).send({message: 'Browser has been closed'});
   },
 
   findProducts: async function(req, res){
@@ -231,7 +231,10 @@ module.exports = {
       console.log("hit")
       res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
       return;
-    };
+    }else{
+      res.status(200).send({message: 'Success! Searching page 1 of 400'});
+      // no return statement here since we want to continue with the code
+    }
     
     try{
       pageNum = 1;
@@ -241,7 +244,7 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless: headless});
+        browser = await puppeteer.launch({headless, args: ['--no-sandbox']});
       }
       const page = await browser.newPage(); 
       
