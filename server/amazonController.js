@@ -27,15 +27,15 @@ async function getManufacturer(page){
 function isExcluded(manufacturer, exclusionList){
   for(let i=0; i<exclusionList.length; i++){
   
-    if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].replace(/ |-/gi, '').toLowerCase()){
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase()){
       log("Seller Is Manufacturer: True");
       return true;
     };
-    if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].replace(/ |-/gi, '').toLowerCase())){
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase())){
       log("Seller Is Manufacturer: True");
       return true;
     };
-    if(exclusionList[i].replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
+    if(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
       log("Seller Is Manufacturer: True");
       return true;
     };
@@ -279,7 +279,7 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless, args: ['--no-sandbox']});
+        browser = await puppeteer.launch({headless: true, args: ['--no-sandbox']});
       }
       const page = await browser.newPage(); 
       
@@ -370,7 +370,7 @@ module.exports = {
                       log(`${manufacturer} is in exclusion list`);
                     }
                   })
-                  .catch(err=>{});
+                  .catch(err=>{console.log(err)});
                 }else{
                   log('duplicate (ASIN already in DB): ' + newAsin);
                 }
