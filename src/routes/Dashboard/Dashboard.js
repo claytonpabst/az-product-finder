@@ -3,6 +3,8 @@ import axios from "axios";
 import React, { Component } from 'react';
 import './Dashboard.css'
 
+import PageNameHeader from '../../components/PageNameHeader/PageNameHeader.js';
+
 
 class Dashboard extends Component {
 
@@ -222,6 +224,11 @@ class Dashboard extends Component {
 
         return (
             <section>
+                < PageNameHeader>
+                    {() => (
+                        <h1>Search</h1>
+                    )}
+                </ PageNameHeader >
                 <div className="home_wrapper">
                     <p>Category</p>
                     <select onChange={(e) => this.setState({ categoryInput: e.target.value })} value={this.state.categoryInput} aria-describedby="searchDropdownDescription" className="" style={{ "display": "block", "top": "0px" }} tabIndex="1">
@@ -281,6 +288,11 @@ class Dashboard extends Component {
                     <button onClick={this.launchAZ}> Launch Amazon </button>
                     <button onClick={this.closeBrowser}> Close Browser </button>
                 </div>
+                < PageNameHeader>
+                    {() => (
+                        <h1>Product Managment</h1>
+                    )}
+                </ PageNameHeader >
 
                 <button onClick={this.toggleInvestigatingList} >
                     { this.state.showInvestigatingList ? 'Show New ASINS' : 'Show Investigating'}
@@ -336,6 +348,11 @@ class Dashboard extends Component {
                         }
                     </div>
                 )}
+                < PageNameHeader>
+                    {() => (
+                        <h1>Exclusion List</h1>
+                    )}
+                </ PageNameHeader >
                 <div className="exclusion-wrapper">
                     <p>{this.state.exclusion}</p>
                     <p>Add to exclusion (Should be typed out exactly as it appears on Amazon)</p>

@@ -16,6 +16,36 @@ function log(content){
   }
 }
 
+async function getManufacturer(page){
+  let manufacturer = await page.evaluate(() => {
+    let manufacturerElement = document.getElementById('olpProductByline');
+    let text = manufacturerElement.innerText.trim();
+    text = text.replace('by ', '');
+    return text;
+  });
+
+  return manufacturer;
+}
+
+function isExcluded(manufacturer, exclusionList){
+  for(let i=0; i<exclusionList.length; i++){
+  
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].replace(/ |-/gi, '').toLowerCase()){
+      log("Seller Is Manufacturer: True");
+      return true;
+    };
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].replace(/ |-/gi, '').toLowerCase())){
+      log("Seller Is Manufacturer: True");
+      return true;
+    };
+    if(exclusionList[i].replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
+      log("Seller Is Manufacturer: True");
+      return true;
+    };
+  };
+  return false;
+}
+
 async function doesSellerMakeThisProduct(page){
   let manufacturer = await page.evaluate(() => {
     let manufacturerElement = document.getElementById('olpProductByline');
@@ -140,6 +170,7 @@ async function getProductRanking(page){
 
     let buybox = '#buybox';
     
+    //this is because that one product was a video and didnt have a buybox.....
     let ranking = await page.evaluate((buybox) => {
       timesChecked = 0;
       function waitForS(selector){
@@ -261,7 +292,7 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless: headless});
+        browser = await puppeteer.launch({headless: false});
       }
       const page = await browser.newPage(); 
       
@@ -311,8 +342,10 @@ module.exports = {
 
             if (!amazonSellsThisProduct && !doesSellerMakeThisProductReturn){
               // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
-              log('Getting ASINS from DB');
+
+              const manufacturer = await getManufacturer(page);
               
+              log('Getting ASINS from DB');
               var db = app.get('db');
               db.getAllAsins()
               .then( dbAsins => {
@@ -328,18 +361,41 @@ module.exports = {
                 }
 
                 if (!duplicate){
-                  log('Pushing new ASIN to DB: ' + newAsin);
-                  db.addAsin([newAsin, ranking])
-                  .then( success => {
-                    // return res.status(200).send({successful: true, message: '.catch error', error: err});
+                  db.getExclusionList()
+                  .then( exclusionList => {
+                    console.log("exclusion list", exclusionList);     
+
+                    let excluded = isExcluded(manufacturer, exclusionList)
+
+
+                    // for(let i=0; i<exclusionList.length; i++){
+                    //   console.log(manufacturer)
+                    //   if(manufacturer.toLowerCase() === exclusionList[i].companies.toLowerCase()){
+                    //     excluded = true;
+                    //   }
+                    // }
+
+                    if(!excluded){
+
+                      log('Pushing new ASIN to DB: ' + newAsin);
+                      db.addAsin([newAsin, ranking, manufacturer, category])
+                      .then( success => {
+                        // return res.status(200).send({successful: true, message: '.catch error', error: err});
+                      })
+                      .catch(err=>{});
+                    } else {
+                      log(`${manufacturer} is in exclusion list`);
+                    }
                   })
                   .catch(err=>{});
                 }else{
                   log('duplicate (ASIN already in DB): ' + newAsin);
                 }
 
+
+
               })
-              .catch(err=>{});
+              .catch(err=>{ console.log(err) });
             }
           }
         }   
