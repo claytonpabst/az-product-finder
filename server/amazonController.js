@@ -263,7 +263,6 @@ module.exports = {
   findProducts: async function(req, res){
 
     if(browser !== null){
-      console.log("hit")
       res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
       return;
     }else{
