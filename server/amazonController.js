@@ -250,10 +250,14 @@ let pagesToSearch = 400;
 module.exports = {
 
   closeBrowser: async function(req, res){
-    await browser.close();
-    browser = null;
-    log("\nBrowser Closed From Front End.");
-    return res.status(200).send({message: 'Browser has been closed'});
+    if(browser !== null){
+      await browser.close();
+      browser = null;
+      log("\nBrowser Closed From Front End.");
+      return res.status(200).send({message: 'Browser has been closed'});
+    } else {
+      return res.status(200).send({message: 'Browser is already closed'});
+    }
   },
 
   findProducts: async function(req, res){
