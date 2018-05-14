@@ -400,19 +400,19 @@ module.exports = {
           log("Browser Closed.")
           return;
         }
+        await page.waitFor(getRandomNumber(60000, 60000*5))
         await browser.close();
         borwser = null;
         browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
         page = await browser.newPage();
         await page.goto(newUrl);
-        await page.waitFor(getRandomNumber(60000, 60000*5))
         pageNum++;
       }
     }
     catch(e){ 
       let error = JSON.stringify(e);
       log(e); 
-      return res.status(200).send({message: 'Error starting the product finder'})
+      return res.status(200).send({message: 'Error starting the product finder', error:error})
     }
   },
 
