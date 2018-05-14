@@ -63,7 +63,7 @@ module.exports = {
       if(!manufacturer){
         return res.status(200).send({error: false, message: 'Marked 1 ASIN as being investigated but failed to remove additional results from the same manufacturer'});
       }
-
+      db.addManufacturerToExclusionList([manufacturer])
       db.removeOtherResultsFromManufacturer([manufacturer])
       .then( done => {
         log('Removed other results from the same manufacturer');
