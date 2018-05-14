@@ -119,6 +119,7 @@ class Dashboard extends Component {
             }else{
                 message = res.data.message;
             }
+            alert(message);
             
             this.setState({ message })
             this.getUrls();
