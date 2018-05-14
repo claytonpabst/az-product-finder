@@ -77,6 +77,9 @@ class Dashboard extends Component {
                 if(res.data.message){
                     alert(res.data.message);
                 };
+                if(res.dada.error){
+                    alert(res.data.error);
+                };
                 log(res);
             })
             .catch( err => log(err));
