@@ -4,6 +4,7 @@ var config = require('./config.js');
 const puppeteer = require('puppeteer');
 
 let browser = null;
+let searchRunning = false;
 let headless = false;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
@@ -254,8 +255,11 @@ let pagesToSearch = 400;
 module.exports = {
 
   closeBrowser: async function(req, res){
-    if(browser !== null){
-      await browser.close();
+    if(browser !== null || searchRunning === true){
+      searchRunning = false;
+      if(browser !== null){
+        await browser.close();
+      }
       browser = null;
       log("\nBrowser Closed From Front End.");
       return res.status(200).send({message: 'Browser has been closed'});
@@ -266,10 +270,10 @@ module.exports = {
 
   findProducts: async function(req, res){
 
-    if(browser !== null){
+    if(browser !== null || searchRunning === true){
       res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
       return;
-    }    
+    }
     
     try{
       pageNum = 1;
@@ -278,8 +282,11 @@ module.exports = {
       const category = req.body.category;
       let searchTerm = req.body.search.split(' ').join('+');
   
-      if(!browser){
+      if(!browser && !searchRunning){
+        searchRunning = true;
         browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
+      } else {
+        return;
       }
       let page = await browser.newPage(); 
       
@@ -396,7 +403,9 @@ module.exports = {
 
         // Go to the next page
         if (pageNum >= pagesToSearch) {
+          searchRunning = false;
           browser.close()
+          browser = null;
           log("Browser Closed.")
           return;
         }
