@@ -107,8 +107,6 @@ class Dashboard extends Component {
             return this.getUrls();
         }
 
-        let {urls} = this.state;
-
         axios.post('/api/markAsInvestigating', {id})
         .then( res => {
             let message;
@@ -118,52 +116,31 @@ class Dashboard extends Component {
             }else{
                 message = res.data.message;
             }
-
-            // let asinInfo = urls.splice(i, 1)[0];
-            // let {investigating} = this.state;
-
-            // // move the asin to the investigating list
-            // if (investigating.length === 1 && investigating[0] === {}){
-            //     investigating[0] = asinInfo;
-            // }else{
-            //     investigating.push(asinInfo);
-            // }
-
-            // this.setState({urls, message, investigating});
+            
+            this.setState({ message })
             this.getUrls();
             this.getInvestigatingList();
         })
         .catch(err => {});
     }
-
+    
     // Gets the asin from which ever list is showing (new asins or investigating)
     // and marks it as looked at
-    markOneUrl(id, whichList){
-
-        let urls = this.state[whichList]
-
+    markOneUrl(id, whichList){        
         axios.post('/api/markOneUrl', {id})
         .then( res => {
             log(res);
             let message;
-
+            
             if (!res.data || !res.data.message){
                 message = 'Error, please try again';
             }else{
                 message = res.data.message;
             }
-            if (res.status === 200){
-                for(let i=0; i<urls.length; i++){
-                    if(urls[i].id === id){
-                        urls[i].looked_at = true;
-                    }    
-                }
-            }
-
-            this.setState({ 
-                [whichList]: urls, 
-                message 
-            })
+            
+            this.setState({ message })
+            this.getUrls();
+            this.getInvestigatingList();
         })
     }
 
