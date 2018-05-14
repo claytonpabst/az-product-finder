@@ -269,10 +269,7 @@ module.exports = {
     if(browser !== null){
       res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
       return;
-    }else{
-      res.status(200).send({message: 'Success! Searching page 1 of 400'});
-      // no return statement here since we want to continue with the code
-    }
+    }    
     
     try{
       pageNum = 1;
@@ -415,6 +412,7 @@ module.exports = {
     catch(e){ 
       let error = JSON.stringify(e);
       log(e); 
+      return res.status(200).send({message: 'Error starting the product finder'})
     }
   },
 

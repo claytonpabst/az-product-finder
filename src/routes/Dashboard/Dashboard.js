@@ -119,17 +119,19 @@ class Dashboard extends Component {
                 message = res.data.message;
             }
 
-            let asinInfo = urls.splice(i, 1)[0];
-            let {investigating} = this.state;
+            // let asinInfo = urls.splice(i, 1)[0];
+            // let {investigating} = this.state;
 
-            // move the asin to the investigating list
-            if (investigating.length === 1 && investigating[0] === {}){
-                investigating[0] = asinInfo;
-            }else{
-                investigating.push(asinInfo);
-            }
+            // // move the asin to the investigating list
+            // if (investigating.length === 1 && investigating[0] === {}){
+            //     investigating[0] = asinInfo;
+            // }else{
+            //     investigating.push(asinInfo);
+            // }
 
-            this.setState({urls, message, investigating});
+            // this.setState({urls, message, investigating});
+            this.getUrls();
+            this.getInvestigatingList();
         })
         .catch(err => {});
     }

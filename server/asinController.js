@@ -55,9 +55,22 @@ module.exports = {
     let { id } = req.body;
 
     db.markAsInvestigating([id])
-    .then( done => { 
+    .then( result => { 
+
       log('Updated 1 asin as being investigated');
-      return res.status(200).send({error: false, message: 'Marked 1 ASIN as being investigated'});
+      let manufacturer = result[0] ? result[0].manufacturer : null;
+
+      if(!manufacturer){
+        return res.status(200).send({error: false, message: 'Marked 1 ASIN as being investigated but failed to remove additional results from the same manufacturer'});
+      }
+
+      db.removeOtherResultsFromManufacturer([manufacturer])
+      .then( done => {
+        log('Removed other results from the same manufacturer');
+        return res.status(200).send({error: false, message: `Marked 1 ASIN as being investigated, & removed additional results from ${manufacturer}`});
+      })
+      .catch( err => {})
+
     })
     .catch( err => {})
 
