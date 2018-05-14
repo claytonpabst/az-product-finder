@@ -4,13 +4,17 @@ var config = require('./config.js');
 const puppeteer = require('puppeteer');
 
 let browser = null;
-let headless = true;
+let headless = false;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
   if (config.debug){
     console.log(content);
   }
+}
+
+function getRandomNumber(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 async function getManufacturer(page){
@@ -278,12 +282,14 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless: true, args: ['--no-sandbox']});
+        browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
       }
-      const page = await browser.newPage(); 
+      let page = await browser.newPage(); 
       
       // Main search results URL
       let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
+      // let mainUrl = `https://www.amazon.com/s/ref=sr_pg_11?rh=n%3A165796011%2Ck%3Ababy+monitor&page=11&keywords=baby+monitor`;
+      // let mainUrl = `https://www.amazon.com/s/ref=sr_pg_80?rh=n%3A165796011%2Ck%3Ababy+monitor&page=80&keywords=baby+monitor`;
       await page.goto(mainUrl);
     
       while (pageNum < pagesToSearch){
@@ -296,15 +302,24 @@ module.exports = {
         // Get the url for future pages
         let newUrl = await page.evaluate(() => document.getElementById('pagnNextLink').href);
         log('Next page url: ' + newUrl);
+        newUrl = newUrl.split('&ie=UTF')[0];
+        if(newUrl.includes('ref')){
+          newUrl = newUrl.split('ref');
+          newUrl[1] = newUrl[1].replace(/\/(.*)?\?/, '?');
+          newUrl = newUrl[0] + 'ref' + newUrl[1];
+        }
+        log('Next page url: ' + newUrl);
 
         // At this point we have a list of ASINs for the current page, so we can check each one
         for (let i = 0; i < asinList.length; i++){
+        // for (let i = 0; i < 3; i++){
           let productDetailsPage = `https://www.amazon.com/abc/dp/${asinList[i]}`;
           let productSellersPage = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
           let productSellersPage2 = `https://www.amazon.com/gp/offer-listing/${asinList[i]}?ie=UTF8&condition=new`;
           
           // This takes us to the product details page where we get the product sales ranking
           await page.goto(productDetailsPage);
+          await page.waitFor(getRandomNumber(100, 500));
           let ranking = await getProductRanking(page);
           ranking = ranking ? ranking : "100000000000";
           ranking = ranking.replace(/,/g, "")
@@ -388,7 +403,12 @@ module.exports = {
           log("Browser Closed.")
           return;
         }
+        await browser.close();
+        borwser = null;
+        browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
+        page = await browser.newPage();
         await page.goto(newUrl);
+        await page.waitFor(getRandomNumber(60000, 60000*5))
         pageNum++;
       }
     }
