@@ -4,13 +4,47 @@ var config = require('./config.js');
 const puppeteer = require('puppeteer');
 
 let browser = null;
-let headless = true;
+let headless = false;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
   if (config.debug){
     console.log(content);
   }
+}
+
+function getRandomNumber(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function getManufacturer(page){
+  let manufacturer = await page.evaluate(() => {
+    let manufacturerElement = document.getElementById('olpProductByline');
+    let text = manufacturerElement.innerText.trim();
+    text = text.replace('by ', '');
+    return text;
+  });
+
+  return manufacturer;
+}
+
+function isExcluded(manufacturer, exclusionList){
+  for(let i=0; i<exclusionList.length; i++){
+  
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase()){
+      log("Seller Is Manufacturer: True");
+      return true;
+    };
+    if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase())){
+      log("Seller Is Manufacturer: True");
+      return true;
+    };
+    if(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
+      log("Seller Is Manufacturer: True");
+      return true;
+    };
+  };
+  return false;
 }
 
 async function doesSellerMakeThisProduct(page){
@@ -135,6 +169,7 @@ async function getProductRanking(page){
 
     let buybox = '#buybox';
     
+    //this is because that one product was a video and didnt have a buybox.....
     let ranking = await page.evaluate((buybox) => {
       timesChecked = 0;
       function waitForS(selector){
@@ -219,16 +254,19 @@ let pagesToSearch = 400;
 module.exports = {
 
   closeBrowser: async function(req, res){
-    await browser.close();
-    browser = null;
-    log("\nBrowser Closed From Front End.");
-    return res.status(200).send({message: 'Browser has been closed'});
+    if(browser !== null){
+      await browser.close();
+      browser = null;
+      log("\nBrowser Closed From Front End.");
+      return res.status(200).send({message: 'Browser has been closed'});
+    } else {
+      return res.status(200).send({message: 'Browser is already closed'});
+    }
   },
 
   findProducts: async function(req, res){
 
     if(browser !== null){
-      console.log("hit")
       res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
       return;
     }    
@@ -241,14 +279,14 @@ module.exports = {
       let searchTerm = req.body.search.split(' ').join('+');
   
       if(!browser){
-        browser = await puppeteer.launch({headless, args: ['--no-sandbox']});
+        browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
       }
-      const page = await browser.newPage(); 
-
-      res.status(200).send({message: 'Success! Searching page 1 of 400'});
+      let page = await browser.newPage(); 
       
       // Main search results URL
       let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
+      // let mainUrl = `https://www.amazon.com/s/ref=sr_pg_11?rh=n%3A165796011%2Ck%3Ababy+monitor&page=11&keywords=baby+monitor`;
+      // let mainUrl = `https://www.amazon.com/s/ref=sr_pg_80?rh=n%3A165796011%2Ck%3Ababy+monitor&page=80&keywords=baby+monitor`;
       await page.goto(mainUrl);
     
       while (pageNum < pagesToSearch){
@@ -261,15 +299,24 @@ module.exports = {
         // Get the url for future pages
         let newUrl = await page.evaluate(() => document.getElementById('pagnNextLink').href);
         log('Next page url: ' + newUrl);
+        newUrl = newUrl.split('&ie=UTF')[0];
+        if(newUrl.includes('ref')){
+          newUrl = newUrl.split('ref');
+          newUrl[1] = newUrl[1].replace(/\/(.*)?\?/, '?');
+          newUrl = newUrl[0] + 'ref' + newUrl[1];
+        }
+        log('Next page url: ' + newUrl);
 
         // At this point we have a list of ASINs for the current page, so we can check each one
         for (let i = 0; i < asinList.length; i++){
+        // for (let i = 0; i < 3; i++){
           let productDetailsPage = `https://www.amazon.com/abc/dp/${asinList[i]}`;
           let productSellersPage = `https://www.amazon.com/gp/offer-listing/${asinList[i]}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
           let productSellersPage2 = `https://www.amazon.com/gp/offer-listing/${asinList[i]}?ie=UTF8&condition=new`;
           
           // This takes us to the product details page where we get the product sales ranking
           await page.goto(productDetailsPage);
+          await page.waitFor(getRandomNumber(100, 500));
           let ranking = await getProductRanking(page);
           ranking = ranking ? ranking : "100000000000";
           ranking = ranking.replace(/,/g, "")
@@ -289,8 +336,10 @@ module.exports = {
 
             if (!amazonSellsThisProduct && !doesSellerMakeThisProductReturn){
               // At this point we know the ranking is good, and we know amazon doesn't sell the product, so get the product URL & push it to the DB
-              log('Getting ASINS from DB');
+
+              const manufacturer = await getManufacturer(page);
               
+              log('Getting ASINS from DB');
               var db = app.get('db');
               db.getAllAsins()
               .then( dbAsins => {
@@ -306,18 +355,41 @@ module.exports = {
                 }
 
                 if (!duplicate){
-                  log('Pushing new ASIN to DB: ' + newAsin);
-                  db.addAsin([newAsin, ranking])
-                  .then( success => {
-                    // return res.status(200).send({successful: true, message: '.catch error', error: err});
+                  db.getExclusionList()
+                  .then( exclusionList => {
+                    console.log("exclusion list", exclusionList);     
+
+                    let excluded = isExcluded(manufacturer, exclusionList)
+
+
+                    // for(let i=0; i<exclusionList.length; i++){
+                    //   console.log(manufacturer)
+                    //   if(manufacturer.toLowerCase() === exclusionList[i].companies.toLowerCase()){
+                    //     excluded = true;
+                    //   }
+                    // }
+
+                    if(!excluded){
+
+                      log('Pushing new ASIN to DB: ' + newAsin);
+                      db.addAsin([newAsin, ranking, manufacturer, category])
+                      .then( success => {
+                        // return res.status(200).send({successful: true, message: '.catch error', error: err});
+                      })
+                      .catch(err=>{});
+                    } else {
+                      log(`${manufacturer} is in exclusion list`);
+                    }
                   })
-                  .catch(err=>{});
+                  .catch(err=>{console.log(err)});
                 }else{
                   log('duplicate (ASIN already in DB): ' + newAsin);
                 }
 
+
+
               })
-              .catch(err=>{});
+              .catch(err=>{ console.log(err) });
             }
           }
         }   
@@ -328,7 +400,12 @@ module.exports = {
           log("Browser Closed.")
           return;
         }
+        await browser.close();
+        borwser = null;
+        browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
+        page = await browser.newPage();
         await page.goto(newUrl);
+        await page.waitFor(getRandomNumber(60000, 60000*5))
         pageNum++;
       }
     }
