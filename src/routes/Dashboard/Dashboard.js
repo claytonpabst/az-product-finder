@@ -329,6 +329,7 @@ class Dashboard extends Component {
 
                                 return <div className='investigatingListItem' key={i}>
                                     <p>ASIN: <span><a href={ productSellers } target='_blank' > {item.asin} </a></span></p>
+                                    <p>Manufacturer: {item.manufacturer}</p>
                                     <button onClick={() => this.markAsFreshUrl(item.id)} >Move back to fresh URLs list</button>
                                     <button className='removeBtn' onClick={() => this.markOneUrl(item.id, 'investigating')}>Mark as looked at</button>
                                 </div>
