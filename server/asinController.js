@@ -10,7 +10,7 @@ function log(content){
 module.exports = {
   
   getUrls: (req, res) => {
-    var db = app.get('db');
+    var db = req.app.get('db');
 
     db.getUrls()
     .then( urls => {
@@ -22,7 +22,7 @@ module.exports = {
   },
 
   getInvestigatingList: (req, res) => {
-    var db = app.get('db');
+    var db = req.app.get('db');
 
     db.getInvestigatingList()
     .then( list => {
@@ -34,7 +34,7 @@ module.exports = {
   },
 
   markAsinForRecheck: function(req, res){
-    var db = app.get('db');
+    var db = req.app.get('db');
 
     let { id } = req.body;
 
@@ -50,7 +50,7 @@ module.exports = {
   },  
 
   markAsInvestigating: function(req, res){
-    var db = app.get('db');
+    var db = req.app.get('db');
 
     let { id } = req.body;
 
@@ -77,7 +77,7 @@ module.exports = {
   },  
 
   markOneUrl: function(req, res){
-    var db = app.get('db');
+    var db = req.app.get('db');
 
     let { id } = req.body;
 
@@ -91,7 +91,7 @@ module.exports = {
   },  
 
   markAsFreshUrl: function(req, res){
-    var db = app.get('db');
+    var db = req.app.get('db');
 
     let { id } = req.body;
 

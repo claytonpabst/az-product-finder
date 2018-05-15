@@ -348,7 +348,7 @@ module.exports = {
               const manufacturer = await getManufacturer(page);
               
               log('Getting ASINS from DB');
-              var db = app.get('db');
+              var db = req.app.get('db');
               db.getAllAsins()
               .then( dbAsins => {
 
@@ -393,8 +393,6 @@ module.exports = {
                 }else{
                   log('duplicate (ASIN already in DB): ' + newAsin);
                 }
-
-
 
               })
               .catch(err=>{ console.log(err) });
