@@ -6,7 +6,7 @@ import './Dashboard.css'
 import PageNameHeader from '../../components/PageNameHeader/PageNameHeader.js';
 
 // log function for debugging on front end
-let debug = false;
+let debug = true;
 function log(content){
     if (debug){
       console.log(content);
@@ -77,7 +77,7 @@ class Dashboard extends Component {
                 if(res.data.message){
                     alert(res.data.message);
                 };
-                if(res.dada.error){
+                if(res.data.error){
                     alert(res.data.error);
                 };
                 log(res);

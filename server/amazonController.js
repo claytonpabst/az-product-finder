@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer');
 
 let browser = null;
 let searchRunning = false;
-let headless = false;
+let headless = true;
 
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
@@ -271,7 +271,7 @@ module.exports = {
   findProducts: async function(req, res){
 
     if(browser !== null || searchRunning === true){
-      res.send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
+      res.status(200).send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
       return;
     }
     
@@ -288,12 +288,13 @@ module.exports = {
       } else {
         return;
       }
+
       let page = await browser.newPage(); 
+
+      res.status(200).send({message:`Started searching for ${searchTerm} successfully.`})
       
       // Main search results URL
       let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
-      // let mainUrl = `https://www.amazon.com/s/ref=sr_pg_11?rh=n%3A165796011%2Ck%3Ababy+monitor&page=11&keywords=baby+monitor`;
-      // let mainUrl = `https://www.amazon.com/s/ref=sr_pg_80?rh=n%3A165796011%2Ck%3Ababy+monitor&page=80&keywords=baby+monitor`;
       await page.goto(mainUrl);
     
       while (pageNum < pagesToSearch){
@@ -404,14 +405,14 @@ module.exports = {
         // Go to the next page
         if (pageNum >= pagesToSearch) {
           searchRunning = false;
-          browser.close()
+          browser.close();
           browser = null;
           log("Browser Closed.")
           return;
         }
         await page.waitFor(getRandomNumber(60000, 60000*5))
         await browser.close();
-        borwser = null;
+        browser = null;
         browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
         page = await browser.newPage();
         await page.goto(newUrl);
