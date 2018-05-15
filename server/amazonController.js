@@ -411,7 +411,7 @@ module.exports = {
         }
         await page.waitFor(getRandomNumber(60000, 60000*5))
         await browser.close();
-        borwser = null;
+        browser = null;
         browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
         page = await browser.newPage();
         await page.goto(newUrl);
