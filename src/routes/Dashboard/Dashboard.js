@@ -6,7 +6,7 @@ import './Dashboard.css'
 import PageNameHeader from '../../components/PageNameHeader/PageNameHeader.js';
 
 // log function for debugging on front end
-let debug = true;
+let debug = false;
 function log(content){
     if (debug){
       console.log(content);

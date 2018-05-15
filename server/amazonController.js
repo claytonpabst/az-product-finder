@@ -33,15 +33,15 @@ function isExcluded(manufacturer, exclusionList){
   for(let i=0; i<exclusionList.length; i++){
   
     if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase()){
-      log("Seller Is Manufacturer: True");
+      log("Company is in exclusion list (=== comparison)");
       return true;
     };
     if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase())){
-      log("Seller Is Manufacturer: True");
+      log("Company is in exclusion list (manuf includes exclusion list company)");
       return true;
     };
     if(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
-      log("Seller Is Manufacturer: True");
+      log("Company is in exclusion list (exclusion list company includes manuf)");
       return true;
     };
   };
@@ -348,7 +348,7 @@ module.exports = {
               const manufacturer = await getManufacturer(page);
               
               log('Getting ASINS from DB');
-              var db = app.get('db');
+              var db = req.app.get('db');
               db.getAllAsins()
               .then( dbAsins => {
 
@@ -367,15 +367,7 @@ module.exports = {
                   .then( exclusionList => {
                     console.log("exclusion list", exclusionList);     
 
-                    let excluded = isExcluded(manufacturer, exclusionList)
-
-
-                    // for(let i=0; i<exclusionList.length; i++){
-                    //   console.log(manufacturer)
-                    //   if(manufacturer.toLowerCase() === exclusionList[i].companies.toLowerCase()){
-                    //     excluded = true;
-                    //   }
-                    // }
+                    let excluded = isExcluded(manufacturer, exclusionList);
 
                     if(!excluded){
 
@@ -393,8 +385,6 @@ module.exports = {
                 }else{
                   log('duplicate (ASIN already in DB): ' + newAsin);
                 }
-
-
 
               })
               .catch(err=>{ console.log(err) });
