@@ -5,7 +5,6 @@
 }
 
 .asinList{
-    width: 40%;
     min-width: 300px;
     min-height: 300px;
     display: block;
@@ -54,4 +53,13 @@
 
 .investigatingListItem p{
     margin-right: 10px;
+}
+
+.comments{
+    width: 220px;
+    height: 60px;
+    resize: none;
+    margin-right: 10px;
+    padding: 2px;
+    font-size: 14px;
 }

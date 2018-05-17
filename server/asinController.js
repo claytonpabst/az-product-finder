@@ -33,6 +33,20 @@ module.exports = {
 
   },
 
+  saveComments: (req, res) => {
+    var db = req.app.get('db');
+
+    let { id, comments } = req.body;
+
+    db.saveComments([id, comments])
+    .then( saved => {
+      log('Saved comments for productId: ' + id);
+      return res.status(200).send({error: false, message: 'Saved comments for productId:' + id});
+    })
+    .catch( err => log(err) )
+
+  },
+
   markAsinForRecheck: function(req, res){
     var db = req.app.get('db');
 
