@@ -93,6 +93,18 @@ class Dashboard extends Component {
         })
     }
 
+    getUrlsRanked(){
+        axios.get('/api/getUrlsRanked')
+        .then( res => {
+            log(res);
+            this.setState({
+                urls: res.data,
+                message: 'Top 20 ranked URLs'
+            })
+        })
+        .catch( err => log(err) );
+    }
+
     closeBrowser(){
         axios.post('/api/closeBrowser')
             .then(res => {
@@ -291,9 +303,16 @@ class Dashboard extends Component {
                     )}
                 </ PageNameHeader >
 
-                <button onClick={this.toggleInvestigatingList} >
-                    { this.state.showInvestigatingList ? 'Show New ASINS' : 'Show Investigating'}
-                </button>
+                    { this.state.showInvestigatingList ? 
+                        <div className='asinControls'>
+                            <button onClick={this.toggleInvestigatingList} >Show New ASINS</button>
+                        </div>
+                    :   <div className='asinControls'>
+                            <button onClick={this.toggleInvestigatingList} >Show Investigating</button>
+                            <button onClick={() => this.getUrlsRanked()} >Get Top Ranked Products</button>
+                        </div>
+                    }
+                
 
                 <p className='message' >{this.state.message}</p>
 

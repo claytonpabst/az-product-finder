@@ -20,6 +20,18 @@ module.exports = {
     .catch( err => log(err) )
 
   },
+  
+  getUrlsRanked: (req, res) => {
+    var db = req.app.get('db');
+
+    db.getUrlsRanked()
+    .then( urls => {
+      log(urls);
+      return res.status(200).send(urls);
+    })
+    .catch( err => log(err) )
+
+  },
 
   getInvestigatingList: (req, res) => {
     var db = req.app.get('db');
