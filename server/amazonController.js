@@ -7,10 +7,19 @@ let browser = null;
 let searchRunning = false;
 let headless = true;
 
+let errorLog = ['these three', 'two are just to check that', 'this endpoint is return from this Array'];
+
 // ** This only works for the terminal. Inside page.evaluate, we have to pass log or use console.log
 function log(content){
   if (config.debug){
     console.log(content);
+  }
+}
+
+function logError(content){
+  errorLog.unshift(content);
+  if(errorLog.length > 100){
+   errorLog = errorLog.splice(100, 1)
   }
 }
 
@@ -161,7 +170,7 @@ async function getAsinsOnPage(page){
 
     return asinList;
   }
-  catch(e){ log("Error with getAsinsOnPage func"); }
+  catch(e){ logError('' + e + ''); logError("Error with getAsinsOnPage func"); log("Error with getAsinsOnPage func"); }
 }
 
 async function getProductRanking(page){
@@ -201,7 +210,7 @@ async function getProductRanking(page){
     log(ranking);
     return ranking;
   }
-  catch(e){ log("Error with getProductRanking func"); }
+  catch(e){logError('' + e + ''); logError("Error with getProductRanking func"); log("Error with getProductRanking func"); }
 }
 
 async function checkIfAmazonSellsProduct(page){
@@ -237,7 +246,7 @@ async function checkIfAmazonSellsProduct(page){
     return amazonSellsThisProduct;
 
   }
-  catch(e){ log(e); }
+  catch(e){ logError('' + e + ''); log(e); }
 }
 
 async function getNumberOfPagesToSearch(page){
@@ -247,12 +256,18 @@ async function getNumberOfPagesToSearch(page){
     });
     return numberOfPages;
   }
-  catch(e){ log("Error with getNumberOfPagesToSearch func"); }
+  catch(e){ logError('' + e + ''); logError("Error with getNumberOfPagesToSearch func"); log("Error with getNumberOfPagesToSearch func"); }
 }
 
 let pageNum = 1;
 let pagesToSearch = 400;
+let mainUrl = '';
+
 module.exports = {
+
+  returnErrorLog(req, res){
+    return res.status(200).send({errorLog: errorLog});
+  },
 
   closeBrowser: async function(req, res){
     if(browser !== null || searchRunning === true){
@@ -294,7 +309,8 @@ module.exports = {
       res.status(200).send({message:`Started searching for ${searchTerm} successfully.`})
       
       // Main search results URL
-      let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
+      // let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
+      let mainUrl = req.body.urlToSearch;
       await page.goto(mainUrl);
     
       while (pageNum < pagesToSearch){
@@ -376,18 +392,18 @@ module.exports = {
                       .then( success => {
                         // return res.status(200).send({successful: true, message: '.catch error', error: err});
                       })
-                      .catch(err=>{});
+                      .catch(err=>{ logError('' + err + ''); log(err); });
                     } else {
                       log(`${manufacturer} is in exclusion list`);
                     }
                   })
-                  .catch(err=>{console.log(err)});
+                  .catch(err=>{logError('' + err + ''); log(err); });
                 }else{
                   log('duplicate (ASIN already in DB): ' + newAsin);
                 }
 
               })
-              .catch(err=>{ console.log(err) });
+              .catch(err=>{ logError('' + err + ''); log(err) });
             }
           }
         }   
@@ -395,12 +411,12 @@ module.exports = {
         // Go to the next page
         if (pageNum >= pagesToSearch) {
           searchRunning = false;
-          browser.close();
+          await browser.close();
           browser = null;
           log("Browser Closed.")
           return;
         }
-        await page.waitFor(getRandomNumber(60000, 60000*5))
+        await page.waitFor(getRandomNumber(60000*3, 60000*5))
         await browser.close();
         browser = null;
         browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
@@ -410,7 +426,8 @@ module.exports = {
       }
     }
     catch(e){ 
-      let error = JSON.stringify(e);
+      logError(json('' + e + ''));
+      logError("Error in main function");
       log(e); 
       return res.status(200).send({message: 'Error starting the product finder', error:error})
     }

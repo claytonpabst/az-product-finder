@@ -20,12 +20,14 @@ class Dashboard extends Component {
         this.state = {
             categoryInput: '',
             searchInput: '',
+            urlToSearch: '',
             urls: [{}],
             investigating: [{}],
             showInvestigatingList: false,
             message: '',
             addToExclusionInput:'',
             exclusion:[],
+            customUrlInput: '',
         }
 
         this.getUrls = this.getUrls.bind(this);
@@ -34,6 +36,18 @@ class Dashboard extends Component {
         this.toggleInvestigatingList = this.toggleInvestigatingList.bind(this);
         this.markAsInvestigating = this.markAsInvestigating.bind(this);
         this.markOneUrl = this.markOneUrl.bind(this);
+    }
+
+    updateUrlToSearch = (customInput) => {
+        let urlToSearch = '';
+        let customUrlInput = '';
+        if(customInput){
+            urlToSearch = customInput;
+            customUrlInput = customInput;
+        } else {
+            urlToSearch = `https://www.amazon.com/s?url=search-alias%3D${this.state.categoryInput}&field-keywords=${this.state.searchInput}`;
+        };
+        this.setState({urlToSearch, customUrlInput});
     }
 
     componentDidMount() {
@@ -65,14 +79,21 @@ class Dashboard extends Component {
     }
 
     launchAZ(){
-        let {categoryInput, searchInput} = this.state;
+        let {categoryInput, searchInput, urlToSearch} = this.state;
 
-        if (!categoryInput || !searchInput){
-            alert("Include both category and search term to begin Amazon product query.")
+        if(!urlToSearch || !urlToSearch.includes("https://www.amazon.com")) {
+            alert("Choose a category and search term, or enter a valid custom URL.")
             return;
         }
+        if( this.state.customUrlInput === '' ){
+            if ( !categoryInput || !searchInput ){
+                alert("Include both category and search term to begin Amazon product query.")
+                return;
+            }
+        }
 
-        axios.post('/api/launchAZ', { category: categoryInput, search: searchInput })
+
+        axios.post('/api/launchAZ', { category: categoryInput, search: searchInput, urlToSearch: urlToSearch })
             .then(res => {
                 if(res.data.message){
                     alert(res.data.message);
@@ -208,6 +229,16 @@ class Dashboard extends Component {
         this.setState({exclusion});
     }
 
+    getBackEndErrorLog = () => {
+        axios.get('/api/getBackEndErrorLog')
+        .then( res => {
+            if(res.data.errorLog){
+                console.log(res.data.errorLog);
+            };
+        })
+        .catch(err => { console.log ('Ironic, but we encountered an error. Error:', err)});
+    }
+
     render() {
         let numAsins = this.state.urls.length;
 
@@ -220,7 +251,7 @@ class Dashboard extends Component {
                 </ PageNameHeader >
                 <div className="home_wrapper">
                     <p>Category</p>
-                    <select onChange={(e) => this.setState({ categoryInput: e.target.value })} value={this.state.categoryInput} aria-describedby="searchDropdownDescription" className="" style={{ "display": "block", "top": "0px" }} tabIndex="1">
+                    <select onChange={(e) => { this.state.categoryInput = e.target.value,  this.updateUrlToSearch(null)}} value={this.state.categoryInput} aria-describedby="searchDropdownDescription" className="" style={{ "display": "block", "top": "0px" }} tabIndex="1">
                         <option value="aps">All Departments</option>
                         <option value="alexa-skills">Alexa Skills</option>
                         <option value="amazon-devices">Amazon Devices</option>
@@ -273,9 +304,18 @@ class Dashboard extends Component {
                         <option value="videogames">Video Games</option>
                     </select>
                     <p>Search Term</p>
-                    <input onChange={(e) => this.setState({ searchInput: e.target.value })} />
+                    <input onChange={(e) => {  this.state.searchInput = e.target.value.split(' ').join('+'), this.updateUrlToSearch(null) }} />
                     <button onClick={this.launchAZ}> Launch Amazon </button>
                     <button onClick={this.closeBrowser}> Close Browser </button>
+                    <button onClick={this.getBackEndErrorLog}> Log Server Errors </button>
+                    <br/>
+                    <br/>
+                    <p>Enter custom URL here. (Optional)</p>
+                    <input value={this.state.customUrlInput} style={{width:"100%", maxWidth:"1000px"}} onChange={(e) => {this.updateUrlToSearch(e.target.value)}}/>
+                    <br/>
+                    <br/>
+                    <p>Starting URL for search:</p>
+                    <p>{this.state.urlToSearch}</p>
                 </div>
                 < PageNameHeader>
                     {() => (
