@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer');
 
 let browser = null;
 let searchRunning = false;
-let headless = false;
+let headless = true;
 
 let errorLog = ['these three', 'two are just to check that', 'this endpoint is return from this Array'];
 
