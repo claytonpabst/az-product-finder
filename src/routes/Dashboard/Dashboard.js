@@ -109,7 +109,7 @@ class Dashboard extends Component {
     saveComments(id, comments){
         axios.post('/api/saveComments', {id, comments})
         .then( res => {
-            console.log(res);
+            this.setState({message: 'Saved comments'})
         })
         .catch(err => console.log(err) )
     }
