@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer');
 
 let browser = null;
 let searchRunning = false;
-let headless = true;
+let headless = false;
 
 let errorLog = ['these three', 'two are just to check that', 'this endpoint is return from this Array'];
 
@@ -286,7 +286,7 @@ module.exports = {
   findProducts: async function(req, res){
 
     if(browser !== null || searchRunning === true){
-      res.status(200).send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search.`});
+      res.status(200).send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search. Starting URL: ${mainUrl}`});
       return;
     }
     
@@ -306,11 +306,11 @@ module.exports = {
 
       let page = await browser.newPage(); 
 
-      res.status(200).send({message:`Started searching for ${searchTerm} successfully.`})
+      res.status(200).send({message:`Started searching ${req.body.urlToSearch} successfully.`})
       
       // Main search results URL
       // let mainUrl = `https://www.amazon.com/s?url=search-alias%3D${req.body.category}&field-keywords=${searchTerm}`;
-      let mainUrl = req.body.urlToSearch;
+      mainUrl = req.body.urlToSearch;
       await page.goto(mainUrl);
     
       while (pageNum < pagesToSearch){
@@ -426,10 +426,10 @@ module.exports = {
       }
     }
     catch(e){ 
-      logError(json('' + e + ''));
+      logError('' + e + '');
       logError("Error in main function");
       log(e); 
-      return res.status(200).send({message: 'Error starting the product finder', error:error})
+      return res.status(200).send({message: 'Error starting the product finder'})
     }
   },
 
