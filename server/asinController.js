@@ -20,6 +20,18 @@ module.exports = {
     .catch( err => log(err) )
 
   },
+  
+  getUrlsRanked: (req, res) => {
+    var db = req.app.get('db');
+
+    db.getUrlsRanked()
+    .then( urls => {
+      log(urls);
+      return res.status(200).send(urls);
+    })
+    .catch( err => log(err) )
+
+  },
 
   getInvestigatingList: (req, res) => {
     var db = req.app.get('db');
@@ -28,6 +40,20 @@ module.exports = {
     .then( list => {
       log(list);
       return res.status(200).send(list);
+    })
+    .catch( err => log(err) )
+
+  },
+
+  saveComments: (req, res) => {
+    var db = req.app.get('db');
+
+    let { id, comments } = req.body;
+
+    db.saveComments([id, comments])
+    .then( saved => {
+      log('Saved comments for productId: ' + id);
+      return res.status(200).send({error: false, message: 'Saved comments for productId:' + id});
     })
     .catch( err => log(err) )
 

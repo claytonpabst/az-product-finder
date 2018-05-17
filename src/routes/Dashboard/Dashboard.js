@@ -34,6 +34,7 @@ class Dashboard extends Component {
         this.getInvestigatingList = this.getInvestigatingList.bind(this);
         this.launchAZ = this.launchAZ.bind(this);
         this.toggleInvestigatingList = this.toggleInvestigatingList.bind(this);
+        this.saveComments = this.saveComments.bind(this);
         this.markAsInvestigating = this.markAsInvestigating.bind(this);
         this.markOneUrl = this.markOneUrl.bind(this);
     }
@@ -113,6 +114,18 @@ class Dashboard extends Component {
         })
     }
 
+    getUrlsRanked(){
+        axios.get('/api/getUrlsRanked')
+        .then( res => {
+            log(res);
+            this.setState({
+                urls: res.data,
+                message: 'Top 20 ranked URLs'
+            })
+        })
+        .catch( err => log(err) );
+    }
+
     closeBrowser(){
         axios.post('/api/closeBrowser')
             .then(res => {
@@ -124,6 +137,14 @@ class Dashboard extends Component {
                 }
             })
             .catch( err => log(err));
+    }
+
+    saveComments(id, comments){
+        axios.post('/api/saveComments', {id, comments})
+        .then( res => {
+            this.setState({message: 'Saved comments'})
+        })
+        .catch(err => console.log(err) )
     }
 
     markAsInvestigating(id, i){
@@ -240,7 +261,6 @@ class Dashboard extends Component {
     }
 
     render() {
-        let numAsins = this.state.urls.length;
 
         return (
             <section>
@@ -323,9 +343,16 @@ class Dashboard extends Component {
                     )}
                 </ PageNameHeader >
 
-                <button onClick={this.toggleInvestigatingList} >
-                    { this.state.showInvestigatingList ? 'Show New ASINS' : 'Show Investigating'}
-                </button>
+                    { this.state.showInvestigatingList ? 
+                        <div className='asinControls'>
+                            <button onClick={this.toggleInvestigatingList} >Show New ASINS</button>
+                        </div>
+                    :   <div className='asinControls'>
+                            <button onClick={this.toggleInvestigatingList} >Show Investigating</button>
+                            <button onClick={() => this.getUrlsRanked()} >Get Top Ranked Products</button>
+                        </div>
+                    }
+                
 
                 <p className='message' >{this.state.message}</p>
 
@@ -335,13 +362,13 @@ class Dashboard extends Component {
                             this.state.urls.map( (item, i) => {
                                 log(item);
                                 
-                                let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
                                 let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
 
                                 return <div className='url' key={i}>
                                     <a href={ productSellers } target='_blank' >{item.asin}</a>
                                     <p>Ranking: {item.ranking || 'No ranking obtained'}</p>
                                     <p>Manufacturer: {item.manufacturer || 'No manufacturer obtained'}</p>
+                                    <textarea className={`comments`} placeholder='Comments about company or product' onBlur={(e) => this.saveComments(item.id, e.target.value)} defaultValue={item.comments} />
                                     <button className='investigatingBtn' onClick={() => this.markAsInvestigating(item.id, i)} >Mark as INVESTIGATING</button>
                                     {
                                         !item.looked_at ? 
@@ -364,12 +391,12 @@ class Dashboard extends Component {
                         { 
                             this.state.investigating.map( (item, i) => {
 
-                                let productDetails = `https://www.amazon.com/abc/dp/${item.asin}`;
                                 let productSellers = `https://www.amazon.com/gp/offer-listing/${item.asin}/ref=dp_olp_new_mbc?ie=UTF8&condition=new`;
 
                                 return <div className='investigatingListItem' key={i}>
                                     <p>ASIN: <span><a href={ productSellers } target='_blank' > {item.asin} </a></span></p>
                                     <p>Manufacturer: {item.manufacturer}</p>
+                                    <textarea className={`comments`} placeholder='Comments about company or product' onBlur={(e) => this.saveComments(item.id, e.target.value)}  defaultValue={item.comments}/>                                    
                                     <button onClick={() => this.markAsFreshUrl(item.id)} >Move back to fresh URLs list</button>
                                     <button className='removeBtn' onClick={() => this.markOneUrl(item.id, 'investigating')}>Mark as looked at</button>
                                 </div>

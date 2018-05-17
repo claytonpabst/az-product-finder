@@ -39,7 +39,9 @@ var amazonController = require("./amazonController.js");
 
 var asinController = require("./asinController.js");
   app.get('/api/getUrls', asinController.getUrls);  
+  app.get('/api/getUrlsRanked', asinController.getUrlsRanked);  
   app.get('/api/getInvestigatingList', asinController.getInvestigatingList);
+  app.post('/api/saveComments', asinController.saveComments);
   app.post('/api/markAsInvestigating', asinController.markAsInvestigating);
   app.post('/api/markOneUrl', asinController.markOneUrl);
   app.post('/api/markAsFreshUrl', asinController.markAsFreshUrl);
