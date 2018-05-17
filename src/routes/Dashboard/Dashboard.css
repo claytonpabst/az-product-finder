@@ -4,6 +4,15 @@
     border-bottom: 1px solid black;
 }
 
+.asinControls{
+    padding: 5px
+}
+
+.asinControls button{
+    margin-right: 10px;
+    cursor: pointer;
+}
+
 .asinList{
     min-width: 300px;
     min-height: 300px;
