@@ -257,7 +257,25 @@ class Dashboard extends Component {
                 console.log(res.data.errorLog);
             };
         })
-        .catch(err => { console.log ('Ironic, but we encountered an error. Error:', err)});
+        .catch(err => { console.log ('Ironic, but we encountered an error. Error: ', err)});
+    }
+    clearBackEndErrorLog = () => {
+        axios.get('/api/clearBackEndErrorLog')
+        .then( res => {
+            if(res.data.message){
+                alert(res.data.message);
+            };
+        })
+        .catch(err => { console.log ('There was an error clearing error log. Error: ', err)});
+    }
+    getBrowserStatus = () => {
+        axios.get('/api/getBrowserStatus')
+        .then( res => {
+            if(res.data.message){
+                alert(res.data.message);
+            };
+        })
+        .catch(err => { console.log ('There was an error getting browser status. Error: ', err)});
     }
 
     render() {
@@ -328,6 +346,8 @@ class Dashboard extends Component {
                     <button onClick={this.launchAZ}> Launch Amazon </button>
                     <button onClick={this.closeBrowser}> Close Browser </button>
                     <button onClick={this.getBackEndErrorLog}> Log Server Errors </button>
+                    <button onClick={this.clearBackEndErrorLog}> Clear Server Errors </button>
+                    <button onClick={this.getBrowserStatus}> Alert Browser Status </button>
                     <br/>
                     <br/>
                     <p>Enter custom URL here. (Optional)</p>

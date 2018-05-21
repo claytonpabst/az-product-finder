@@ -34,6 +34,8 @@ var userController = require("./userController.js");
 
 var amazonController = require("./amazonController.js");
   app.get('/api/getBackEndErrorLog', amazonController.returnErrorLog);
+  app.get('/api/clearBackEndErrorLog', amazonController.clearErrorLog);
+  app.get('/api/getBrowserStatus', amazonController.returnBrowserStatus);
   app.post('/api/launchAZ', amazonController.findProducts);
   app.post('/api/closeBrowser', amazonController.closeBrowser);
 

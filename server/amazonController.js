@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer');
 
 let browser = null;
 let searchRunning = false;
-let headless = true;
+let headless = false;
 
 let errorLog = ['these three', 'two are just to check that', 'this endpoint is return from this Array'];
 
@@ -28,72 +28,83 @@ function getRandomNumber(min, max){
 }
 
 async function getManufacturer(page){
-  let manufacturer = await page.evaluate(() => {
-    let manufacturerElement = document.getElementById('olpProductByline');
-    let text = manufacturerElement.innerText.trim();
-    text = text.replace('by ', '');
-    return text;
-  });
-
-  return manufacturer;
+  try{
+    let manufacturer = await page.evaluate(() => {
+      let manufacturerElement = document.getElementById('olpProductByline');
+      let text = manufacturerElement.innerText.trim();
+      text = text.replace('by ', '');
+      return text;
+    });
+  
+    return manufacturer;
+  } 
+  catch(e) {
+    logError('' + e + ''); logError("Error with getManufacturer func"); log("Error with getManufacturer func");
+  }
 }
 
 function isExcluded(manufacturer, exclusionList){
-  for(let i=0; i<exclusionList.length; i++){
-  
-    if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase()){
-      log("Company is in exclusion list (=== comparison)");
-      return true;
+  try{
+    for(let i=0; i<exclusionList.length; i++){
+    
+      if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase()){
+        log("Company is in exclusion list (=== comparison)");
+        return true;
+      };
+      if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase())){
+        log("Company is in exclusion list (manuf includes exclusion list company)");
+        return true;
+      };
+      if(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
+        log("Company is in exclusion list (exclusion list company includes manuf)");
+        return true;
+      };
+
     };
-    if(manufacturer.replace(/ |-/gi, '').toLowerCase().includes(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase())){
-      log("Company is in exclusion list (manuf includes exclusion list company)");
-      return true;
-    };
-    if(exclusionList[i].companies.replace(/ |-/gi, '').toLowerCase().includes(manufacturer.replace(/ |-/gi, '').toLowerCase())){
-      log("Company is in exclusion list (exclusion list company includes manuf)");
-      return true;
-    };
-  };
-  return false;
+    return false;
+  }
+  catch(e){
+    logError('' + e + ''); logError("Error with isExcluded func"); log("Error with isExcluded func");
+  }
 }
 
 async function doesSellerMakeThisProduct(page){
-  let manufacturer = await page.evaluate(() => {
-    let manufacturerElement = document.getElementById('olpProductByline');
-    let text = manufacturerElement.innerText.trim();
-    text = text.replace('by ', '');
-    return text;
-  });
-  let sellers = await page.evaluate(() => {
-    let sellersArr = [];
-    if (document.querySelectorAll('#olpOfferList .olpOffer')){
-      let sellersList = document.querySelectorAll('#olpOfferList .olpOffer');
-      for (let i = 0; i < sellersList.length; i++){
-        let name;
-        try{
-          name = sellersList[i].children[3].children[0].innerText;
+  try{
+    let manufacturer = await page.evaluate(() => {
+      let manufacturerElement = document.getElementById('olpProductByline');
+      let text = manufacturerElement.innerText.trim();
+      text = text.replace('by ', '');
+      return text;
+    });
+    let sellers = await page.evaluate(() => {
+      let sellersArr = [];
+      if (document.querySelectorAll('#olpOfferList .olpOffer')){
+        let sellersList = document.querySelectorAll('#olpOfferList .olpOffer');
+        for (let i = 0; i < sellersList.length; i++){
+          let name;
+          try{
+            name = sellersList[i].children[3].children[0].innerText;
+          }
+          catch(e){}
+          if (name) { sellersArr.push(name.toLowerCase()); }
         }
-        catch(e){}
-        if (name) { sellersArr.push(name.toLowerCase()); }
       }
+      return sellersArr;
+    });
+  
+    log('Manufacturer: ' + manufacturer);
+    log(`Sellers: [${sellers}]`);
+  
+    if ((sellers.length === 2 && sellers[0] === sellers[1]) || sellers.length === 1){
+      log("Not Enough Sellers");
+      return true;
     }
-    return sellersArr;
-  });
-
-  log('Manufacturer: ' + manufacturer);
-  log(`Sellers: [${sellers}]`);
-
-  if ((sellers.length === 2 && sellers[0] === sellers[1]) || sellers.length === 1){
-    log("Not Enough Sellers");
-    return true;
-  }
-
-  if (manufacturer.match(/amazon/i)){
-    log('Amazon is the manufacturer');
-    return true;
-  }
-
-  // try{
+  
+    if (manufacturer.match(/amazon/i)){
+      log('Amazon is the manufacturer');
+      return true;
+    }
+  
     for(let i=0; i<sellers.length; i++){
   
       if(manufacturer.replace(/ |-/gi, '').toLowerCase() ===  sellers[i].replace(/ |-/gi, '').toLowerCase()){
@@ -129,12 +140,10 @@ async function doesSellerMakeThisProduct(page){
     
     log("Seller Is Manufacturer: False");
     return false;
-
-  // }
-  // catch(e){
-  //   let error = JSON.stringify(e);
-  //   log('Clayton Says, "Error with doesSellerMakeThisProduct() ....... Error: ' + error + '"');
-  // }
+  }
+  catch(e){
+    logError('' + e + ''); logError("Error with doesSellerMakeThisProduct func"); log("Error with doesSellerMakeThisProduct func");
+  }
 
 }
 
@@ -269,6 +278,19 @@ module.exports = {
     return res.status(200).send({errorLog: errorLog});
   },
 
+  clearErrorLog(req, res){
+    errorLog = [];
+    return res.status(200).send({message:"Error log cleared."})
+  },
+
+  returnBrowserStatus(req, res){
+    if(searchRunning){
+      return res.status(200).send({message:`Server is searching page ${pageNum} of ${pagesToSearch}. Please close browser to start a new search. Starting URL: ${mainUrl}`})
+    } else {
+      return res.status(200).send({message:`Server's browser is closed.`})
+    }
+  },
+
   closeBrowser: async function(req, res){
     if(browser !== null || searchRunning === true){
       searchRunning = false;
@@ -340,7 +362,7 @@ module.exports = {
           
           // This takes us to the product details page where we get the product sales ranking
           await page.goto(productDetailsPage);
-          await page.waitFor(getRandomNumber(100, 500));
+          await page.waitFor(getRandomNumber(50, 300));
           let ranking = await getProductRanking(page);
           ranking = ranking ? ranking : "100000000000";
           ranking = ranking.replace(/,/g, "")
@@ -416,7 +438,7 @@ module.exports = {
           log("Browser Closed.")
           return;
         }
-        await page.waitFor(getRandomNumber(60000*3, 60000*5))
+        await page.waitFor(getRandomNumber(60000*2, 60000*5))
         await browser.close();
         browser = null;
         browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox']});
@@ -427,8 +449,11 @@ module.exports = {
     }
     catch(e){ 
       logError('' + e + '');
-      logError("Error in main function");
+      logError("Error in main function. Browser has been closed.");
       log(e); 
+      await browser.close();
+      browser = null;
+      searchRunning = false;
       return res.status(200).send({message: 'Error starting the product finder'})
     }
   },
