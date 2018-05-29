@@ -43,6 +43,8 @@ var asinController = require("./asinController.js");
   app.get('/api/getUrls', asinController.getUrls);  
   app.get('/api/getUrlsRanked', asinController.getUrlsRanked);  
   app.get('/api/getInvestigatingList', asinController.getInvestigatingList);
+  app.get('/api/getExclusionList', asinController.getExclusionList);
+  app.post('/api/addToExclusion', asinController.addToExclusion);
   app.post('/api/saveComments', asinController.saveComments);
   app.post('/api/markAsInvestigating', asinController.markAsInvestigating);
   app.post('/api/markOneUrl', asinController.markOneUrl);
