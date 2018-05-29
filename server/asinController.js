@@ -42,7 +42,34 @@ module.exports = {
       return res.status(200).send(list);
     })
     .catch( err => log(err) )
+  },
 
+  getExclusionList: (req, res) => {
+    var db = req.app.get('db');
+
+    db.getExclusionList()
+    .then( list => {
+      log(list);
+      return res.status(200).send(list);
+    })
+    .catch( err => log(err) )
+  },
+
+  addToExclusion: (req, res) => {
+    var db = req.app.get('db');
+    let { newCompany } = req.body;
+
+    db.addToExclusion([newCompany])
+    .then( done => {
+      log('done adding new exclusion company');
+      db.getExclusionList()
+      .then ( list => {
+        log('retrieving updated exclusion list from db');
+        return res.status(200).send(list);
+      })
+      .catch( err => log(err) )
+    })
+    .catch( err => log(err) )
   },
 
   saveComments: (req, res) => {
