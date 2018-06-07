@@ -236,9 +236,10 @@ async function checkIfAmazonSellsProduct(page){
 
       let sellersHtml = document.querySelector(sellersBox).innerHTML;
       let amazonPatterns = [
-        /alt="Amazon\.com"/,
-        /alt="amazon\.com"/,
-        /src="https:\/\/images-na\.ssl-images-amazon\.com\/images\/I\/01dXM-J1oeL\.gif/,
+        /alt="Amazon\.com"/i,
+        /alt="amazon\.com"/i,
+        /src="https:\/\/images-na\.ssl-images-amazon\.com\/images\/I\/01dXM-J1oeL\.gif/i,
+        /http:\/\/ecx.images-amazon.com\/images\/I\/01dXM-J1oeL.gif/i,
       ];
       
       for (let i = 0; i < amazonPatterns.length; i++){
